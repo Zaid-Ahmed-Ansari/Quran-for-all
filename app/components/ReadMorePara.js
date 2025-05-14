@@ -9,7 +9,7 @@ const ReadMoreParagraph = ({ text, maxChars }) => {
   const displayText = expanded ? text : text.slice(0, maxChars);
 
   return (
-    <div className="my-6 text-text-primary text-lato">
+    <div className="my-6 text-surah text-lato">
       <p>
         {displayText}
         {!expanded && text.length > maxChars ? '...' : ''}

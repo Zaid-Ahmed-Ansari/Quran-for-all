@@ -26,8 +26,8 @@ const page = () => {
 
       />
       </p> 
-      <p className='text-text-primary font-lato mt-10'>In the name of God, the Most Gracious, the Most Merciful </p>
-      <p className='text-text-primary font-lato mt-2'>   All praise    is due to God, the Lord of the Universe;        the Beneficent, the Merciful;        Lord of the Day of Judgement.      You alone we worship, and to You alone we turn for help.     Guide us to the straight path:     the path of those You
+      <p className='text-surah font-lato mt-10'>In the name of God, the Most Gracious, the Most Merciful </p>
+      <p className='text-surah font-lato mt-2'>   All praise    is due to God, the Lord of the Universe;        the Beneficent, the Merciful;        Lord of the Day of Judgement.      You alone we worship, and to You alone we turn for help.     Guide us to the straight path:     the path of those You
 have blessed; not of those who have incurred Your wrath, nor of those who have gone astray.</p>
 
       <Commentary/>

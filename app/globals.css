@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  --text-surah: #424547;
+;
   --text-primary:#545454;
   --navbg: #f9f9f9;
   --text-secondary: #83888A;
@@ -14,6 +16,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-navbg: var(--navbg);
+  --color-surah: var(--text-surah);
   --color-text-secondary: var(--text-secondary);
   --color-hoverclr: var(--hovercolor);
   --font-sans: var(--font-geist-sans);
