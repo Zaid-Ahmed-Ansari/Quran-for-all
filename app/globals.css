@@ -1,8 +1,11 @@
 @import "tailwindcss";
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 :root {
+  --dark-text: #D3D7DA;
   --text-surah: #424547;
-;
+  --dark-nav: #202121;
+  --dark-background:#282A2B;
   --text-primary:#545454;
   --navbg: #f9f9f9;
   --text-secondary: #83888A;
@@ -13,6 +16,9 @@
 }
 
 @theme inline {
+  --color-dark-background: var(--dark-background);
+  --color-dark-nav: var(--dark-nav);
+  --color-dark-text: var(--dark-text);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-navbg: var(--navbg);

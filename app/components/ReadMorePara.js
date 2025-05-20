@@ -3,14 +3,14 @@ import { useState } from 'react';
 
 const ReadMoreParagraph = ({ text, maxChars }) => {
   const [expanded, setExpanded] = useState(false);
-
+  console.log(text.length)
   const toggleExpand = () => setExpanded(!expanded);
 
   const displayText = expanded ? text : text.slice(0, maxChars);
 
   return (
     <div className="my-6 text-surah text-lato">
-      <p>
+      <p className='dark:text-dark-text'>
         {displayText}
         {!expanded && text.length > maxChars ? '...' : ''}
         {text.length > maxChars && (

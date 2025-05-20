@@ -7,6 +7,7 @@ import { Lato } from 'next/font/google';
 
 
 
+
 const lato = Lato({
   subsets: ['latin'],
   weight: ['400', '700'],     // Include both weights
@@ -21,13 +22,16 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      
       <body
-        className={`${lato.variable} antialiased overflow-x-hidden over`}
+        className={`${lato.variable}  antialiased overflow-x-hidden over`} 
+        
       >
         <Navbar/>
-        <SurahNav/>
+        {/* <SurahNav/> */}
         {children}
       </body>
+      
     </html>
   );
 }
