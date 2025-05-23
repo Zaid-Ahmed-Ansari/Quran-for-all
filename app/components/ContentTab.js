@@ -7,12 +7,14 @@ import {
   ChevronRightCircle,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import React, { useState, useEffect } from "react";
 
 export default function ContentTabs() {
   const params = useParams();
   const chapterNumber = Number(params.number);
+  const englishName = decodeURIComponent(params.englishName || "");
   const [activeTab, setActiveTab] = useState("read");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
@@ -23,63 +25,73 @@ export default function ContentTabs() {
         title: "With every hardship there is ease",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
       {
         title: "Praise be to God (Alhamd-o-lillah)",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: "#",
+        link:`/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
       {
         title: "With every ha",
         excerpt:
           "The Quran introduces God as  community or group. He is the God of all...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
       {
         title: "Praise be to God (Alhamd-o-lillah)",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
       {
         title: "With every hardship there is ease",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
       {
         title: "Praise be to God (Alhamd-o-lillah)",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
       {
         title: "With every hardship there is ease",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
       {
         title: "Praise be to God (Alhamd-o-lillah)",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
     ],
     watch: [
       {
         title: "Video Content 1",
         excerpt: "Sample video content description...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+      },
+       {
+        title: "Video Content 1",
+        excerpt: "Sample video content description...",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
     ],
     listen: [
       {
         title: "Audio Content 1",
         excerpt: "Sample audio content description...",
-        link: "#",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+      },
+      {
+        title: "Audio Content 1",
+        excerpt: "Sample audio content description...",
+        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
       },
     ],
   };
@@ -159,18 +171,22 @@ export default function ContentTabs() {
         {/* Cards container */}
         <div className="flex flex-1 gap-6">
           {visibleCards.map((card, index) => (
+
             <div
               key={startIndex + index}
               className="group flex-1 h-[532px] rounded-[12px] relative overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
             >
+            <Link
+              href={card.link}
+              className="absolute inset-0 bg-cover bg-center">
               {/* Background image */}
               <div
-                className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300"
+                className="absolute hover:cursor-pointer inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300"
                 style={{
                   backgroundImage:
-                    "url('https://images.unsplash.com/photo-1494412651409-8963ce7935a7?q=80&w=2070&auto=format&fit=crop')",
+                  "url('https://images.unsplash.com/photo-1494412651409-8963ce7935a7?q=80&w=2070&auto=format&fit=crop')",
                 }}
-              ></div>
+                ></div>
 
               {/* Overlay */}
               <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-all duration-300"></div>
@@ -191,6 +207,7 @@ export default function ContentTabs() {
                   </span>
                 </a>
               </div>
+                  </Link>
             </div>
           ))}
         </div>
@@ -220,29 +237,6 @@ export default function ContentTabs() {
       </div>
 
       {/* Pagination and Chapter navigation */}
-      <div className="flex flex-col">
-        <div className="flex justify-between mb-5 mt-5">
-          <div className="text-gray-500 text-sm font-lato sm:text-base">
-            Page 3 of 50
-          </div>
-          <div className="text-gray-500 font-lato text-sm sm:text-base">
-            Completed 5%
-          </div>
-        </div>
-        <div className="flex items-center justify-center">
-          <div className="w-full bg-gray-200 rounded-full h-1">
-            <div
-              className="bg-[#C7BCAB] h-1 rounded-full"
-              style={{ width: "5%" }}
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 flex items-center justify-between text-text-primary">
-        <ChevronLeftCircle className="w-[40px] h-[38px]" />
-        <h2 className="text-lato font-bold text-2xl ">Chapter {chapterNumber}</h2>
-        <ChevronRightCircle className="w-[40px] h-[38px]" />
-      </div>
+     
     </div>
   );}

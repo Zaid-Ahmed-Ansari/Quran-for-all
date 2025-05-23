@@ -11,6 +11,8 @@ import ContentTabs from '../../../../components/ContentTab';
 import { fatihaCommentary, surahFatiha } from '../../../../helpers/fatiha';
 import SurahDisplay from '../../../../components/SurahDisplay';
 import SurahNav from '../../../../components/SurahNav';
+import { ChevronLeftCircleIcon, ChevronRightCircle } from 'lucide-react';
+import Navbar from '../../../../components/Navbar';
 
 const page = () => {
   const [selectedVerse, setSelectedVerse] = useState(null);
@@ -21,6 +23,7 @@ const page = () => {
   return (
 
     <div className=' dark:bg-dark-background' >
+      <Navbar/>
 
     <SurahNav selectedVerse={selectedVerse} setSelectedVerse={setSelectedVerse}/>
     <div className='flex felx-col justify-center w-full ' >
@@ -45,6 +48,30 @@ have blessed; not of those who have incurred Your wrath, nor of those who have g
       
 <DelveQuran/>
 <ContentTabs/>
+ <div className="flex flex-col">
+        <div className="flex justify-between mb-5 mt-5">
+          <div className="text-gray-500 text-sm font-lato sm:text-base">
+            Page 3 of 50
+          </div>
+          <div className="text-gray-500 font-lato text-sm sm:text-base">
+            Completed 5%
+          </div>
+        </div>
+        <div className="flex items-center justify-center">
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div
+              className="bg-[#C7BCAB] h-1 rounded-full"
+              style={{ width: "5%" }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 flex items-center justify-between text-text-primary">
+        <ChevronLeftCircleIcon className="w-[40px] h-[38px]" />
+        <h2 className="text-lato font-bold text-2xl ">Chapter {chapterNumber}</h2>
+        <ChevronRightCircle className="w-[40px] h-[38px]" />
+      </div>
      </div>
     </div>
     </div>

@@ -80,7 +80,7 @@ const SurahNav = ({selectedVerse,setSelectedVerse}) => {
   return (
     <div className="relative z-50 ">
       {/* Navbar */}
-      <div className="flex w-screen border border-gray-200 dark:bg-dark-background divide-x divide-gray-200 dark:divide-white text-sm h-[66.17px] text-gray-800 dark:text-dark-text bg-white">
+      <div className="flex w-screen border border-gray-200 dark:bg-dark-background divide-x divide-gray-200 dark:divide-white text-sm h-[50px] text-gray-800 dark:text-dark-text bg-white">
         {/* Chapter */}
         <button onClick={() => setShowChapterDropdown(!showChapterDropdown)} className="flex items-center justify-center flex-3 px-4 w-[300px] py-2 hover:cursor-pointer gap-1">
           <span>Chapter {chapterNumber}: {englishName}</span>
@@ -147,12 +147,12 @@ const SurahNav = ({selectedVerse,setSelectedVerse}) => {
 
       {/* Verse Dropdown */}
       {showVerseDropdown && (
-        <div ref={dropdownRefs.verse} className="absolute top-[68px] left-[300px] w-[260px] bg-white border rounded shadow p-2 z-50">
+        <div ref={dropdownRefs.verse} className="absolute top-[68px] left-[300px] w-[260px] bg-white border border-[#DCE0E3   ] rounded shadow p-2 z-50">
           <div className="flex justify-between items-center mb-2">
             <input type="text" placeholder="Search" value={verseSearch} onChange={(e) => setVerseSearch(e.target.value)} className="w-full p-2 text-[#757575] border-b focus:outline-none border-gray-300 text-sm" />
             <button onClick={() => setVerseSearch('')}><X size={18} className='text-text-primary' /></button>
           </div>
-          <div className="grid grid-cols-5 gap-2 max-h-[200px] overflow-y-auto">
+          <div className="grid grid-cols-5 gap-2 max-h-[400px] overflow-y-auto">
             {filteredVerses.map((v) => (
               <button
                 key={v}
