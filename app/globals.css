@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
+
 :root {
   --dark-text: #D3D7DA;
   --text-surah: #424547;

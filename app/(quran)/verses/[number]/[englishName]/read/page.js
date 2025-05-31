@@ -4,15 +4,17 @@ import { ChevronLeft, ChevronRight, Bookmark, Share, Maximize2, X } from 'lucide
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import ShareModal from '../../../../../components/ShareModal';
 
 const CardReader = () => {
   const [currentCard, setCurrentCard] = useState(0);
   
   
+  
  const cards = [
     { articleId:'0',
       title: "With every hardship there is ease",
-      backgroundImage: "/api/placeholder/800/300",
+      backgroundImage: "/nature3.jpg",
       content: {
         quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
         mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
@@ -21,7 +23,7 @@ const CardReader = () => {
     },
     { articleId:'1',
       title: "Praise be to God (Alhamd-o-lillah)",
-      backgroundImage: "/api/placeholder/800/300",
+      backgroundImage: "/nature2.jpg",
       content: {
         quote: "When man has an ocean of gratitude for God's innumerable blessings, he spontaneously utters words of praise in universal acknowledgement. This is true Alhamd-o-lillah",
         mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
@@ -30,7 +32,7 @@ const CardReader = () => {
     },
     { articleId:'2',
       title: "With every hardship there is ease",
-      backgroundImage: "/api/placeholder/800/300",
+      backgroundImage: "/nature.jpg",
       content: {
         quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
         mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
@@ -43,6 +45,7 @@ const router = useRouter()
   const params = useParams()
   const chapterNumber = Number(params.number);
   const englishName = decodeURIComponent(params.englishName || "");
+  const [showShareModal, setShowShareModal] = useState(false);
   const nextCard = () => {
     setCurrentCard((prev) => (prev + 1) % cards.length);
   };
@@ -52,7 +55,7 @@ const router = useRouter()
   };
 
   return (
-    <div className="min-h-screen bg-[#13131380] flex items-end  flex-col p-4">
+    <div className="min-h-screen bg-[#131313]/50 flex items-end  flex-col p-4">
         <div className="flex  m-2 mb-5  space-x-3 text-white">
             <div className='hover:bg-hoverclr rounded-full w-9 h-9 flex items-center justify-center'><Bookmark className="w-5 h-5 cursor-pointer " /></div>
             <div className='hover:bg-hoverclr rounded-full w-9 h-9 flex items-center justify-center'><Image
@@ -60,6 +63,7 @@ const router = useRouter()
                 width={26.1}
                 height={19}
                 alt="share"
+                onClick={() => setShowShareModal(true)}
                 className="w-5 h-5 cursor-pointer  "/></div>
             <div onClick={()=>{
               router.push(`/verses/${chapterNumber}/${englishName}/${cards[currentCard].articleId}`)
@@ -70,7 +74,7 @@ const router = useRouter()
           className='hover:bg-hoverclr hover:cursor-pointer rounded-full w-9 h-9 flex items-center justify-center'><X className="w-5 h-5 cursor-pointer " 
           
           /></div>
-
+{showShareModal && <ShareModal/>}
               
               
               
@@ -88,58 +92,53 @@ const router = useRouter()
        
 
         {/* Card Content */}
-        <div className="relative ">
-          {/* Background Image with Overlay */}
-          <div 
-            className="h-64 bg-cover bg-center relative"
-            style={{ 
-              backgroundImage: `url(${cards[currentCard].backgroundImage})`,
-              backgroundPosition: 'center center'
-            }}
-          >
-            {/* Dark overlay for better text readability */}
-            <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-            
-            {/* Navigation Arrows */}
-            
-            
-            
+        <div className="relative">
+  {/* Background Image with Overlay */}
+  <div className="relative w-full h-64">
+    <Image
+      src={cards[currentCard].backgroundImage}
+      alt={cards[currentCard].title}
+      layout="fill"
+      objectFit="cover"
+      className="rounded-t-lg"
+      priority
+    />
+    {/* Dark overlay for better text readability */}
+    {/* <div className="absolute inset-0 bg-black bg-opacity-50"></div> */}
 
-            {/* Title */}
-            <div className="absolute bottom-8 left-8 z-10">
-              <h2 className="text-3xl font-merriweather font-bold text-white">
-                {cards[currentCard].title}
-              </h2>
-            </div>
-          </div>
+    {/* Title */}
+    <div className="absolute bottom-8 left-8 z-10">
+      <h2 className="text-3xl font-merriweather font-bold text-white">
+        {cards[currentCard].title}
+      </h2>
+    </div>
+  </div>
 
-          {/* Content Section */}
-          <div className="p-8 bg-white">
-            {/* Quote */}
-            <div className="mb-6">
-              <p className="text-gray-600 italic font-lato text-lg leading-relaxed">
-                {cards[currentCard].content.quote}
-              </p>
-            </div>
+  {/* Content Section */}
+  <div className="p-8 bg-white">
+    {/* Quote */}
+    <div className="mb-6">
+      <p className="text-gray-600 italic font-lato text-lg leading-relaxed">
+        {cards[currentCard].content.quote}
+      </p>
+    </div>
 
-            {/* Main Text */}
-            <div className="mb-4">
-              <p className="text-gray-800 text-base font-lato leading-relaxed">
-                {cards[currentCard].content.mainText}
-              </p>
-            </div>
+    {/* Main Text */}
+    <div className="mb-4">
+      <p className="text-gray-800 text-base font-lato leading-relaxed">
+        {cards[currentCard].content.mainText}
+      </p>
+    </div>
 
-            {/* Additional Text */}
-            <div>
-              <p className="text-gray-800 text-base font-lato leading-relaxed">
-                {cards[currentCard].content.additionalText}
-              </p>
-            </div>
-          </div>
+    {/* Additional Text */}
+    <div>
+      <p className="text-gray-800 text-base font-lato leading-relaxed">
+        {cards[currentCard].content.additionalText}
+      </p>
+    </div>
+  </div>
+</div>
 
-          {/* Pagination Dots */}
-         
-        </div>
       </div>
     </div>
     <button

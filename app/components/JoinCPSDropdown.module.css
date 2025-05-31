@@ -1,0 +1,78 @@
+/* outer wrapper */
+.container {
+  position: relative;
+  display: inline-block;
+}
+
+/* your “Join us” button – style to match your header */
+.button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: Lato, sans-serif;
+  font-size: 18px;
+  color: #333;
+}
+
+/* the dropdown panel */
+.menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 181px;
+  background: #FFFFFF;
+  border: 1px solid #DCE0E3;
+  border-radius: 10px;
+  box-sizing: border-box;
+  padding: 32px 35px; /* matches your “left:35px; top:32px;” */
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+/* when open */
+.menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* the inner auto-layout frame */
+.frame {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 38px;
+  width: 111px;
+  /* height: 425px; optional if you want exact clipping */
+}
+
+/* each link */
+.item {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  font-family: Lato, sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 17px;
+  text-transform: capitalize;
+  color: #545454;
+}
+
+/* special WhatsApp colour */
+.item.whatsapp {
+    .whatsapp {
+  color: #70A2B7;
+}
+}
+
+/* icon next to text */
+.icon {
+  flex-shrink: 0;
+  width: 101px;    /* ← bump this up */
+  height: 20px;   /* ← and this */
+  margin-right: 12px; /* ← a bit more breathing room */
+}
