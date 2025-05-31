@@ -49,7 +49,7 @@ const AudioPlayer = ({ audioSrc, audioTitle, onClose,onTimeUpdate,isVisible }) =
     if (!audio) return;
     
     if (audio.paused) {
-      audio.play();
+      audio.play(); 
       setIsPlaying(true);
     } else {
       audio.pause();

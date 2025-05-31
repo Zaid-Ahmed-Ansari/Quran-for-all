@@ -26,60 +26,57 @@ export default function ContentTabs() {
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature.jpg"
       },
       {
         title: "Praise be to God (Alhamd-o-lillah)",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
         link:`/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature2.jpg"
       },
       {
         title: "With every ha",
         excerpt:
           "The Quran introduces God as  community or group. He is the God of all...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature3.jpg"
       },
       {
         title: "Praise be to God (Alhamd-o-lillah)",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature.jpg"
       },
       {
         title: "With every hardship there is ease",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature2.jpg"
       },
       {
         title: "Praise be to God (Alhamd-o-lillah)",
         excerpt:
           "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature3.jpg"
       },
-      {
-        title: "With every hardship there is ease",
-        excerpt:
-          "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-      },
-      {
-        title: "Praise be to God (Alhamd-o-lillah)",
-        excerpt:
-          "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-      },
+      
     ],
     watch: [
       {
         title: "Video Content 1",
         excerpt: "Sample video content description...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature.jpg"
       },
        {
         title: "Video Content 1",
         excerpt: "Sample video content description...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature2.jpg"
       },
     ],
     listen: [
@@ -87,11 +84,13 @@ export default function ContentTabs() {
         title: "Audio Content 1",
         excerpt: "Sample audio content description...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature3.jpg"
       },
       {
         title: "Audio Content 1",
         excerpt: "Sample audio content description...",
         link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
+        image: "/nature.jpg"
       },
     ],
   };
@@ -183,8 +182,8 @@ export default function ContentTabs() {
               <div
                 className="absolute hover:cursor-pointer inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300"
                 style={{
-                  backgroundImage:
-                  "url('https://images.unsplash.com/photo-1494412651409-8963ce7935a7?q=80&w=2070&auto=format&fit=crop')",
+                  backgroundImage:`url(${card.image})`,
+                  
                 }}
                 ></div>
 
