@@ -39,6 +39,42 @@ const CardReader = () => {
         additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
       }
     },
+    { articleId:'3',
+      title: "With every hardship there is ease",
+      backgroundImage: "/nature.jpg",
+      content: {
+        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
+        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
+        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
+      }
+    },
+    { articleId:'4',
+      title: "With every hardship there is ease",
+      backgroundImage: "/nature.jpg",
+      content: {
+        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
+        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
+        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
+      }
+    },
+    { articleId:'5',
+      title: "With every hardship there is ease",
+      backgroundImage: "/nature.jpg",
+      content: {
+        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
+        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
+        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
+      }
+    },
+    { articleId:'6',
+      title: "With every hardship there is ease",
+      backgroundImage: "/nature.jpg",
+      content: {
+        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
+        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
+        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
+      }
+    },
     // Add more cards here as needed
   ];
 const router = useRouter()
@@ -87,60 +123,12 @@ const router = useRouter()
             >
               <ChevronLeft className="w-8 h-8" />
             </button>
-      <div className="w-full max-w-[1258px] max-h-[723px]  bg-white rounded-lg shadow-2xl  relative">
-        {/* Header */}
-       
-
-        {/* Card Content */}
-        <div className="relative">
-  {/* Background Image with Overlay */}
-  <div className="relative w-full h-64">
-    <Image
-      src={cards[currentCard].backgroundImage}
-      alt={cards[currentCard].title}
-      layout="fill"
-      objectFit="cover"
-      className="rounded-t-lg"
-      priority
-    />
-    {/* Dark overlay for better text readability */}
-    {/* <div className="absolute inset-0 bg-black bg-opacity-50"></div> */}
-
-    {/* Title */}
-    <div className="absolute bottom-8 left-8 z-10">
-      <h2 className="text-3xl font-merriweather font-bold text-white">
-        {cards[currentCard].title}
-      </h2>
-    </div>
-  </div>
-
-  {/* Content Section */}
-  <div className="p-8 bg-white">
-    {/* Quote */}
-    <div className="mb-6">
-      <p className="text-gray-600 italic font-lato text-lg leading-relaxed">
-        {cards[currentCard].content.quote}
-      </p>
-    </div>
-
-    {/* Main Text */}
-    <div className="mb-4">
-      <p className="text-gray-800 text-base font-lato leading-relaxed">
-        {cards[currentCard].content.mainText}
-      </p>
-    </div>
-
-    {/* Additional Text */}
-    <div>
-      <p className="text-gray-800 text-base font-lato leading-relaxed">
-        {cards[currentCard].content.additionalText}
-      </p>
-    </div>
-  </div>
-</div>
-
-      </div>
-    </div>
+            <Image
+            src={`/Downloadablecard${cards[currentCard].articleId}.svg`}
+            height={764}
+            width={430}
+            />
+     </div>
     <button
               onClick={nextCard}
               className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10"
@@ -169,3 +157,58 @@ const router = useRouter()
 };
 
 export default CardReader;
+
+
+{/* <div className="w-full max-w-[1258px] max-h-[723px]  bg-white rounded-lg shadow-2xl  relative">
+       
+       
+
+        
+        <div className="relative">
+  
+  <div className="relative w-full h-64">
+    <Image
+      src={cards[currentCard].backgroundImage}
+      alt={cards[currentCard].title}
+      layout="fill"
+      objectFit="cover"
+      className="rounded-t-lg"
+      priority
+    />
+    
+    
+
+    
+    <div className="absolute bottom-8 left-8 z-10">
+      <h2 className="text-3xl font-merriweather font-bold text-white">
+        {cards[currentCard].title}
+      </h2>
+    </div>
+  </div>
+
+  
+  <div className="p-8 bg-white">
+    
+    <div className="mb-6">
+      <p className="text-gray-600 italic font-lato text-lg leading-relaxed">
+        {cards[currentCard].content.quote}
+      </p>
+    </div>
+
+   
+    <div className="mb-4">
+      <p className="text-gray-800 text-base font-lato leading-relaxed">
+        {cards[currentCard].content.mainText}
+      </p>
+    </div>
+
+    
+    <div>
+      <p className="text-gray-800 text-base font-lato leading-relaxed">
+        {cards[currentCard].content.additionalText}
+      </p>
+    </div>
+  </div>
+</div>
+
+      </div> */}

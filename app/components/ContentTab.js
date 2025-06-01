@@ -21,6 +21,13 @@ export default function ContentTabs() {
 
   const contentData = {
     read: [
+       { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard1.svg' },
+      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard2.svg' },
+      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard3.svg' },
+      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard4.svg' },
+      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard5.svg' },
+      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard6.svg' },
+      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard7.svg' },
       {
         title: "With every hardship there is ease",
         excerpt:
