@@ -8,101 +8,60 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
+import { articles } from "../helpers/articles";
 
 export default function ContentTabs() {
   const params = useParams();
+  const router = useRouter();
   const chapterNumber = Number(params.number);
   const englishName = decodeURIComponent(params.englishName || "");
   const [activeTab, setActiveTab] = useState("read");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const contentData = {
-    read: [
-       { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard1.svg' },
-      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard2.svg' },
-      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard3.svg' },
-      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard4.svg' },
-      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard5.svg' },
-      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard6.svg' },
-      { link: `/verses/${chapterNumber}/${englishName}/read`, image: '/Downloadablecard7.svg' },
-      {
-        title: "With every hardship there is ease",
-        excerpt:
-          "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature.jpg"
-      },
-      {
-        title: "Praise be to God (Alhamd-o-lillah)",
-        excerpt:
-          "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link:`/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature2.jpg"
-      },
-      {
-        title: "With every ha",
-        excerpt:
-          "The Quran introduces God as  community or group. He is the God of all...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature3.jpg"
-      },
-      {
-        title: "Praise be to God (Alhamd-o-lillah)",
-        excerpt:
-          "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature.jpg"
-      },
-      {
-        title: "With every hardship there is ease",
-        excerpt:
-          "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature2.jpg"
-      },
-      {
-        title: "Praise be to God (Alhamd-o-lillah)",
-        excerpt:
-          "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature3.jpg"
-      },
-      
-    ],
-    watch: [
-      {
-        title: "Video Content 1",
-        excerpt: "Sample video content description...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature.jpg"
-      },
-       {
-        title: "Video Content 1",
-        excerpt: "Sample video content description...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature2.jpg"
-      },
-    ],
-    listen: [
-      {
-        title: "Audio Content 1",
-        excerpt: "Sample audio content description...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature3.jpg"
-      },
-      {
-        title: "Audio Content 1",
-        excerpt: "Sample audio content description...",
-        link: `/verses/${chapterNumber}/${englishName}/${activeTab}`,
-        image: "/nature.jpg"
-      },
-    ],
-  };
 
-  const cards = contentData[activeTab];
+
+  // Preview cards for 'watch' and 'listen' tabs (two each)
+  const videoPreviews = [
+    {
+      title: "Watch Quranic Videos",
+      image: "/nature3.jpg",
+      description: "Explore Quranic wisdom through curated video content.",
+      route: `/verses/${chapterNumber}/${englishName}/watch`,
+      cta: "WATCH NOW"
+    },
+    {
+      title: "Special Video Lecture",
+      image: "/nature.jpg",
+      description: "Dive deeper with a special lecture on the Quran.",
+      route: `/verses/${chapterNumber}/${englishName}/watch`,
+      cta: "WATCH LECTURE"
+    }
+  ];
+  const audioPreviews = [
+    {
+      title: "Listen to Quranic Audio",
+      image: "/nature2.jpg",
+      description: "Listen to Quranic recitations and commentary.",
+      route: `/verses/${chapterNumber}/${englishName}/listen`,
+      cta: "LISTEN NOW"
+    },
+    {
+      title: "Special Audio Reflection",
+      image: "/nature3.jpg",
+      description: "Reflect with a special audio session on the Quran.",
+      route: `/verses/${chapterNumber}/${englishName}/listen`,
+      cta: "LISTEN REFLECTION"
+    }
+  ];
+
+  const filteredArticles = articles;
+  const cards = filteredArticles.map(article => ({
+    ...article,
+    link: article.link(chapterNumber, englishName),
+  }));
   const cardsPerPage = 2;
   const totalPages = Math.ceil(cards.length / cardsPerPage);
 
@@ -163,7 +122,7 @@ export default function ContentTabs() {
         </button>
       </div>
 
-      {/* Carousel */}
+      {/* Carousel or Preview */}
       <div className="relative flex items-center gap-4">
         {/* Left arrow */}
         <button
@@ -174,48 +133,61 @@ export default function ContentTabs() {
           <ChevronLeft size={24} />
         </button>
 
-        {/* Cards container */}
+        {/* Cards container or preview */}
         <div className="flex flex-1 gap-6">
-          {visibleCards.map((card, index) => (
-
-            <div
-              key={startIndex + index}
-              className="group flex-1 h-[532px] rounded-[12px] relative overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-            <Link
-              href={card.link}
-              className="absolute inset-0 bg-cover bg-center">
-              {/* Background image */}
+          {(activeTab === "watch" ? videoPreviews : activeTab === "listen" ? audioPreviews : null) ?
+            (activeTab === "watch" ? videoPreviews : audioPreviews).map((preview, idx) => (
               <div
-                className="absolute hover:cursor-pointer inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300"
-                style={{
-                  backgroundImage:`url(${card.image})`,
-                  
-                }}
+                key={idx}
+                className="group flex-1 h-[532px] rounded-[12px] relative overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+                onClick={() => router.push(preview.route)}
+              >
+                <div
+                  className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300"
+                  style={{ backgroundImage: `url(${preview.image})` }}
                 ></div>
-
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-all duration-300"></div>
-
-              {/* Text content */}
-              <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                <h3 className="text-xl font-bold font-lato mb-2 decoration-2 underline-offset-4">
-                  {card.title}
-                </h3>
-                <p className="text-gray-200 mb-4 font-lato">{card.excerpt}</p>
-                <a
-                  href={card.link}
-                  className="inline-flex items-center font-lato font-semibold group-hover:text-white px-3 py-1.5 rounded transition-all duration-300 border-b-2 w-fit"
-                >
-                  READ MORE
-                  <span className="ml-2 font-lato group-hover:translate-x-1 transition-transform duration-300">
-                    →
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-all duration-300"></div>
+                <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                  <h3 className="text-xl font-bold font-lato mb-2 decoration-2 underline-offset-4">
+                    {preview.title}
+                  </h3>
+                  <p className="text-gray-200 mb-4 font-lato">{preview.description}</p>
+                  <span className="inline-flex items-center font-lato font-semibold group-hover:text-white px-3 py-1.5 rounded transition-all duration-300 border-b-2 w-fit">
+                    {preview.cta}
+                    <span className="ml-2 font-lato group-hover:translate-x-1 transition-transform duration-300">→</span>
                   </span>
-                </a>
+                </div>
               </div>
-                  </Link>
-            </div>
-          ))}
+            ))
+          : (
+            visibleCards.map((card, index) => (
+              <div
+                key={startIndex + index}
+                className="group flex-1 h-[532px] rounded-[12px] relative overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
+                onClick={() => router.push(`/verses/${chapterNumber}/${englishName}/read?article=${startIndex + index}`)}
+                style={{ cursor: 'pointer' }}
+              >
+                {/* Background image */}
+                <div
+                  className="absolute hover:cursor-pointer inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300"
+                  style={{ backgroundImage:`url(${card.image})` }}
+                ></div>
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-all duration-300"></div>
+                {/* Text content */}
+                <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                  <h3 className="text-xl font-bold font-lato mb-2 decoration-2 underline-offset-4">
+                    {card.title}
+                  </h3>
+                  <p className="text-gray-200 mb-4 font-lato">{card.excerpt}</p>
+                  <span className="inline-flex items-center font-lato font-semibold group-hover:text-white px-3 py-1.5 rounded transition-all duration-300 border-b-2 w-fit">
+                    READ MORE
+                    <span className="ml-2 font-lato group-hover:translate-x-1 transition-transform duration-300">→</span>
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Right arrow */}
@@ -229,20 +201,22 @@ export default function ContentTabs() {
       </div>
 
       {/* Dots */}
-      <div className="flex justify-center mt-4 gap-2">
-        {Array.from({ length: totalPages }).map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setCurrentPage(idx)}
-            className={`w-3 h-3 rounded-full bg-white border  ${
-              currentPage === idx ? "border-black border" : "border border-[#DCE0E3] "
-            }`}
-            aria-label={`Go to page ${idx + 1}`}
-          />
-        ))}
-      </div>
+      {activeTab === "read" && (
+        <div className="flex justify-center mt-4 gap-2">
+          {Array.from({ length: totalPages }).map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentPage(idx)}
+              className={`w-3 h-3 rounded-full bg-white border  ${
+                currentPage === idx ? "border-black border" : "border border-[#DCE0E3] "
+              }`}
+              aria-label={`Go to page ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Pagination and Chapter navigation */}
-     
     </div>
-  );}
+  );
+}

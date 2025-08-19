@@ -1,87 +1,37 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Bookmark, Share, Maximize2, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import ShareModal from '../../../../../components/ShareModal';
+import { articles } from '../../../../../helpers/articles';
+import ShortArticle from '../../../../../components/ShortArticle';
 
 const CardReader = () => {
   const [currentCard, setCurrentCard] = useState(0);
-  
-  
-  
- const cards = [
-    { articleId:'0',
-      title: "With every hardship there is ease",
-      backgroundImage: "/nature3.jpg",
-      content: {
-        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
-        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
-        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
-      }
-    },
-    { articleId:'1',
-      title: "Praise be to God (Alhamd-o-lillah)",
-      backgroundImage: "/nature2.jpg",
-      content: {
-        quote: "When man has an ocean of gratitude for God's innumerable blessings, he spontaneously utters words of praise in universal acknowledgement. This is true Alhamd-o-lillah",
-        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
-        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
-      }
-    },
-    { articleId:'2',
-      title: "With every hardship there is ease",
-      backgroundImage: "/nature.jpg",
-      content: {
-        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
-        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
-        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
-      }
-    },
-    { articleId:'3',
-      title: "With every hardship there is ease",
-      backgroundImage: "/nature.jpg",
-      content: {
-        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
-        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
-        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
-      }
-    },
-    { articleId:'4',
-      title: "With every hardship there is ease",
-      backgroundImage: "/nature.jpg",
-      content: {
-        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
-        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
-        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
-      }
-    },
-    { articleId:'5',
-      title: "With every hardship there is ease",
-      backgroundImage: "/nature.jpg",
-      content: {
-        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
-        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
-        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
-      }
-    },
-    { articleId:'6',
-      title: "With every hardship there is ease",
-      backgroundImage: "/nature.jpg",
-      content: {
-        quote: "The Quran introduces God as the 'Lord of the Universe' not just the God of some community or group. He is the God of all",
-        mainText: "The second verse of the Quran is, \"Praise be to God, the Lord of the Universe.\" (1:2) These are words which it takes but a moment to repeat. But if these words have to express true realization of God, their significance is so great that nothing can be greater. That is why, there is a Hadith which has this to say: \"Alham du Lillah, fills up man's balance (of good deeds) or scale of action.\" (Sahih Muslim, Hadith No. 223)",
-        additionalText: "When one thinks that the universe came into being fifteen billion years ago, and that it is still expanding,"
-      }
-    },
-    // Add more cards here as needed
-  ];
-const router = useRouter()
-  const params = useParams()
+  const router = useRouter();
+  const params = useParams();
   const chapterNumber = Number(params.number);
   const englishName = decodeURIComponent(params.englishName || "");
   const [showShareModal, setShowShareModal] = useState(false);
+
+  const cards = articles.map(article => ({
+    ...article,
+    link: article.link(chapterNumber, englishName),
+  }));
+  
+  // Set currentCard from query param on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const articleIndex = searchParams.get('article');
+      if (articleIndex && !isNaN(Number(articleIndex))) {
+        setCurrentCard(Number(articleIndex));
+      }
+    }
+  }, []);
+
   const nextCard = () => {
     setCurrentCard((prev) => (prev + 1) % cards.length);
   };
@@ -102,7 +52,7 @@ const router = useRouter()
                 onClick={() => setShowShareModal(true)}
                 className="w-5 h-5 cursor-pointer  "/></div>
             <div onClick={()=>{
-              router.push(`/verses/${chapterNumber}/${englishName}/${cards[currentCard].articleId}`)
+              router.push(cards[currentCard].link)
             }} className='hover:bg-hoverclr rounded-full w-9 h-9 flex items-center justify-center'><Maximize2 className="w-5 h-5 cursor-pointer " /></div>
             <div onClick={()=>{
             router.push(`/verses/${chapterNumber}/${englishName}`)
@@ -123,11 +73,54 @@ const router = useRouter()
             >
               <ChevronLeft className="w-8 h-8" />
             </button>
-            <Image
-            src={`/Downloadablecard${cards[currentCard].articleId}.svg`}
-            height={764}
-            width={430}
-            />
+            {/* Conditionally render ShortArticle or the long article card */}
+            {cards[currentCard].isShort ? (
+              <ShortArticle
+                backgroundImage={cards[currentCard].image}
+                title={cards[currentCard].title}
+                quote={cards[currentCard].content.quote}
+                quoteReference={cards[currentCard].content.quranVerse}
+                content={cards[currentCard].content.mainText}
+                source={cards[currentCard].content.source}
+              />
+            ) : (
+              <div className="w-full max-w-[1258px] max-h-[723px]  bg-white rounded-lg shadow-2xl  relative">
+                <div className="relative">
+                  <div className="relative w-full h-64">
+                    <Image
+                      src={cards[currentCard].image}
+                      alt={cards[currentCard].title}
+                      layout="fill"
+                      objectFit="cover"
+                      className="rounded-t-lg"
+                      priority
+                    />
+                    <div className="absolute bottom-8 left-8 z-10">
+                      <h2 className="text-3xl font-merriweather font-bold text-white">
+                        {cards[currentCard].title}
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="p-8 bg-white">
+                    <div className="mb-6">
+                      <p className="text-gray-600 italic font-lato text-lg leading-relaxed">
+                        {cards[currentCard].content.quote}
+                      </p>
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-gray-800 text-base font-lato leading-relaxed">
+                        {cards[currentCard].content.mainText}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-800 text-base font-lato leading-relaxed">
+                        {cards[currentCard].content.additionalText}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
      </div>
     <button
               onClick={nextCard}

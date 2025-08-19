@@ -1,13 +1,13 @@
 'use client'
-import Image from 'next/image';
+
 import { surahs } from '../../../../helpers/surahs';
 import { useParams } from 'next/navigation';
 import React, { useState } from 'react'
 import Commentary from '../../../../components/Commentary';
-import ReadMoreParagraph from '../../../../components/ReadMorePara';
+
 import DelveQuran from '../../../../components/DelveQuran';
 import ContentTabs from '../../../../components/ContentTab';
-import { fatihaCommentary, surahFatiha } from '../../../../helpers/fatiha';
+
 import SurahDisplay from '../../../../components/SurahDisplay';
 import SurahNav1 from '../../../../components/SurahNav';
 import { ChevronLeftCircleIcon, ChevronRightCircle } from 'lucide-react';

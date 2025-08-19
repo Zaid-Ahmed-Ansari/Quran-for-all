@@ -1,5 +1,5 @@
 'use client'
-import { ChevronDown, X } from 'lucide-react'
+import { ChevronDown, X, MoreVertical, Languages } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import { surahs } from '../helpers/surahs'
@@ -38,6 +38,7 @@ const SurahNav = ({ selectedVerse, setSelectedVerse, settings }) => {
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showArabicDropdown, setShowArabicDropdown] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showMoreDropdown, setShowMoreDropdown] = useState(false);
 
   const [verseSearch, setVerseSearch] = useState('');
   const [chapterSearch, setChapterSearch] = useState('');
@@ -54,6 +55,7 @@ const SurahNav = ({ selectedVerse, setSelectedVerse, settings }) => {
     language: useRef(null),
     settings: useRef(null),
     arabic: useRef(null),
+    more: useRef(null),
   };
 
   const handleCopyLink = () => {
@@ -87,13 +89,15 @@ const SurahNav = ({ selectedVerse, setSelectedVerse, settings }) => {
         !dropdownRefs.verse.current?.contains(e.target) &&
         !dropdownRefs.language.current?.contains(e.target) &&
         !dropdownRefs.settings.current?.contains(e.target) &&
-        !dropdownRefs.arabic.current?.contains(e.target)
+        !dropdownRefs.arabic.current?.contains(e.target) &&
+        !dropdownRefs.more.current?.contains(e.target)
       ) {
         setShowChapterDropdown(false);
         setShowVerseDropdown(false);
         setShowLanguageDropdown(false);
         setShowSettingsDropdown(false);
         setShowArabicDropdown(false);
+        setShowMoreDropdown(false);
       }
     };
 
@@ -116,53 +120,97 @@ const SurahNav = ({ selectedVerse, setSelectedVerse, settings }) => {
           ? 'dark:bg-dark-background dark:divide-white dark:text-dark-text bg-dark-background' 
           : 'bg-white'
       }`}>
-        {/* Chapter */}
-        <button onClick={() => setShowChapterDropdown(!showChapterDropdown)} className="flex items-center justify-center flex-3 px-4 w-[300px] py-2 hover:cursor-pointer gap-1">
-          <span>Chapter {chapterNumber}: {englishName}</span>
-          <em className="text-gray-500">({arabicRoman})</em>
-          <ChevronDown size={16} className="ml-1 text-gray-600" />
-        </button>
+        {/* Mobile View */}
+        <div className="flex md:hidden w-full items-center justify-between px-2">
+          <button onClick={() => setShowChapterDropdown(!showChapterDropdown)} className="flex items-center w-1/2 relative overflow-hidden whitespace-nowrap py-2 hover:cursor-pointer gap-1">
+            <span className="truncate font-lato">Chapter {chapterNumber}: {englishName}</span>
+            <div className={`absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l ${theme === 'dark' ? 'from-dark-background' : 'from-white'}`} />
+            <ChevronDown size={16} className="ml-1 text-gray-600 flex-shrink-0" />
+          </button>
+          <div className='flex items-center divide-x divide-gray-200 dark:divide-white'>
+            <button onClick={() => setShowVerseDropdown(!showVerseDropdown)} className="flex items-center justify-center px-2 py-2 hover:cursor-pointer gap-1">
+              <span className='font-lato'>Verse</span>
+              <ChevronDown size={16} className="text-gray-600" />
+            </button>
+            <button onClick={() => setShowLanguageDropdown(!showLanguageDropdown)} className="p-2 pl-3">
+              <Languages size={20} className='text-text-primary'/>
+            </button>
+            <div className='p-2 pl-3'>
+              <Image src='/searchicon.svg' width={18} height={18} alt='search' />
+            </div>
+            <div className="relative" ref={dropdownRefs.more}>
+              <button onClick={() => setShowMoreDropdown(!showMoreDropdown)} className="p-2 pl-3">
+                <MoreVertical size={20} className='text-text-primary'/>
+              </button>
+              {showMoreDropdown && (
+                <div className={`absolute top-full right-0 mt-2 w-48 border rounded shadow-lg ${theme === 'dark' ? 'bg-dark-background text-white' : 'bg-white'}`}>
+                  <button onClick={() => { setShowArabicDropdown(true); setShowMoreDropdown(false);}} className="flex w-full items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <span>Arabic</span>
+                  </button>
+                  <button onClick={() => { setShowSettingsDropdown(true); setShowMoreDropdown(false);}} className="flex w-full items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 gap-2">
+                    <Image src='/settingssurahnav.svg' width={21} height={18} alt='settings' />
+                    <span>Settings</span>
+                  </button>
+                  <button onClick={() => { setShowShareModal(true); setShowMoreDropdown(false); }} className="flex w-full items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 gap-2">
+                    <Image src='/share.svg' width={18} height={18} alt='share' />
+                    <span>Share</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Desktop View */}
+        <div className='hidden md:flex w-full divide-x divide-gray-200 dark:divide-white'>
+          {/* Chapter */}
+          <button onClick={() => setShowChapterDropdown(!showChapterDropdown)} className="flex items-center justify-center flex-3 px-4 w-[300px] py-2 hover:cursor-pointer gap-1">
+            <span>Chapter {chapterNumber}: {englishName}</span>
+            <em className="text-gray-500">({arabicRoman})</em>
+            <ChevronDown size={16} className="ml-1 text-gray-600" />
+          </button>
 
-        {/* Verse */}
-        <button onClick={() => setShowVerseDropdown(!showVerseDropdown)} className="flex items-center justify-center flex-1 px-4 py-2 hover:cursor-pointer gap-1">
-          <span>Verse</span>
-          <ChevronDown size={16} className="text-gray-600" />
-        </button>
+          {/* Verse */}
+          <button onClick={() => setShowVerseDropdown(!showVerseDropdown)} className="flex items-center justify-center flex-1 px-4 py-2 hover:cursor-pointer gap-1">
+            <span>Verse</span>
+            <ChevronDown size={16} className="text-gray-600" />
+          </button>
 
-        {/* Language */}
-        <button onClick={() => setShowLanguageDropdown(!showLanguageDropdown)} className="flex flex-1 justify-center items-center px-4 py-2 hover:cursor-pointer gap-1">
-          <span>Language</span>
-          <ChevronDown size={16} className="text-gray-600" />
-        </button>
+          {/* Language */}
+          <button onClick={() => setShowLanguageDropdown(!showLanguageDropdown)} className="flex flex-1 justify-center items-center px-4 py-2 hover:cursor-pointer gap-1">
+            <span>Language</span>
+            <ChevronDown size={16} className="text-gray-600" />
+          </button>
 
-        {/* Arabic */}
-        <button onClick={() => setShowArabicDropdown(!showArabicDropdown)} className="flex flex-1 justify-center items-center px-4 py-2 hover:cursor-pointer gap-1">
-          <span>Arabic</span>
-          <ChevronDown size={16} className="text-gray-600" />
-        </button>
+          {/* Arabic */}
+          <button onClick={() => setShowArabicDropdown(!showArabicDropdown)} className="flex flex-1 justify-center items-center px-4 py-2 hover:cursor-pointer gap-1">
+            <span>Arabic</span>
+            <ChevronDown size={16} className="text-gray-600" />
+          </button>
 
-        {/* Settings */}
-        <button onClick={() => setShowSettingsDropdown(!showSettingsDropdown)} className="flex flex-1 justify-center items-center px-4 py-2 hover:cursor-pointer gap-1">
-          <Image src='/settingssurahnav.svg' width={21} height={18} alt='settings' />
-          <span>Settings</span>
-        </button>
+          {/* Settings */}
+          <button onClick={() => setShowSettingsDropdown(!showSettingsDropdown)} className="flex flex-1 justify-center items-center px-4 py-2 hover:cursor-pointer gap-1">
+            <Image src='/settingssurahnav.svg' width={21} height={18} alt='settings' />
+            <span>Settings</span>
+          </button>
 
-        {/* Share */}
-        <button onClick={() => setShowShareModal(true)} className="flex flex-1 justify-center items-center hover:cursor-pointer px-4 py-2 gap-1">
-          <Image src='/share.svg' width={18} height={18} alt='share' />
-          <span>Share</span>
-        </button>
+          {/* Share */}
+          <button onClick={() => setShowShareModal(true)} className="flex flex-1 justify-center items-center hover:cursor-pointer px-4 py-2 gap-1">
+            <Image src='/share.svg' width={18} height={18} alt='share' />
+            <span>Share</span>
+          </button>
 
-        {/* Search */}
-        <div className='flex flex-2 justify-center items-center px-4 hover:cursor-pointer py-2 gap-1'>
-          <Image src='/searchicon.svg' width={18} height={18} alt='search' />
-          <input type="text" placeholder='Search' className={`${theme === 'dark' ? 'dark:text-dark-text bg-transparent' : ''}`} />
+          {/* Search */}
+          <div className='flex flex-2 justify-center items-center px-4 hover:cursor-pointer py-2 gap-1'>
+            <Image src='/searchicon.svg' width={18} height={18} alt='search' />
+            <input type="text" placeholder='Search' className={`${theme === 'dark' ? 'dark:text-dark-text bg-transparent' : ''}`} />
+          </div>
         </div>
       </div>
 
       {/* Language Dropdown */}
       {showLanguageDropdown && (
-        <div ref={dropdownRefs.language} className={`absolute top-[68px] left-[500px] w-[200px] border rounded shadow max-h-[300px] overflow-y-auto ${
+        <div ref={dropdownRefs.language} className={`absolute top-[68px] right-2 md:left-[500px] md:right-auto w-[200px] border rounded shadow max-h-[300px] overflow-y-auto ${
           theme === 'dark' ? 'bg-dark-background text-white' : 'bg-white'
         }`}>
           {languages.map((lang) => (
@@ -185,7 +233,7 @@ const SurahNav = ({ selectedVerse, setSelectedVerse, settings }) => {
 
       {/* Arabic Dropdown */}
       {showArabicDropdown && (
-        <div ref={dropdownRefs.arabic} className={`absolute top-[68px] left-[600px] w-[250px] border rounded shadow p-2 ${
+        <div ref={dropdownRefs.arabic} className={`absolute top-[68px] right-2 md:left-[600px] md:right-auto w-[250px] border rounded shadow p-2 ${
           theme === 'dark' ? 'bg-dark-background text-white' : 'bg-white'
         }`}>
           <button 
@@ -217,7 +265,7 @@ const SurahNav = ({ selectedVerse, setSelectedVerse, settings }) => {
       {showSettingsDropdown && (
   <div
     ref={dropdownRefs.settings}
-    className={`absolute top-[68px] left-[700px] w-[400px] h-[235px] border rounded shadow p-3 ${
+    className={`absolute top-[68px] right-2 md:left-[700px] md:right-auto w-11/12 md:w-[400px] h-[235px] border rounded shadow p-3 ${
       theme === 'dark' ? 'bg-dark-background text-white' : 'bg-white'
     }`}
   >
@@ -327,7 +375,7 @@ const SurahNav = ({ selectedVerse, setSelectedVerse, settings }) => {
       {/* Other existing dropdowns... */}
       {/* Chapter Dropdown */}
       {showChapterDropdown && (
-        <div ref={dropdownRefs.chapter} className={`absolute top-[68px] left-[20px] w-[400px] border rounded shadow max-h-[400px] overflow-y-auto p-2 ${
+        <div ref={dropdownRefs.chapter} className={`absolute top-[68px] left-[20px] w-11/12 md:w-[400px] border rounded shadow max-h-[400px] overflow-y-auto p-2 ${
           theme === 'dark' ? 'bg-dark-background text-white' : 'bg-white'
         }`}>
           <div className="flex justify-between items-center mb-2">
@@ -353,7 +401,7 @@ const SurahNav = ({ selectedVerse, setSelectedVerse, settings }) => {
 
       {/* Verse Dropdown */}
       {showVerseDropdown && (
-        <div ref={dropdownRefs.verse} className={`absolute top-[68px] left-[300px] w-[260px] border border-[#DCE0E3] rounded shadow p-2 z-50 ${
+        <div ref={dropdownRefs.verse} className={`absolute top-[68px] left-1/2 -translate-x-1/2 md:left-[300px] md:translate-x-0 w-[260px] border border-[#DCE0E3] rounded shadow p-2 z-50 ${
           theme === 'dark' ? 'bg-dark-background text-white' : 'bg-white'
         }`}>
           <div className="flex justify-between items-center mb-2">
