@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      shortUrl: `https://quran-for-all.vercel.app/${code}`,
+      shortUrl: `https://quran-for-all.vercel.app/s/${code}`,
       code,
     });
   } catch (e) {
