@@ -1,4 +1,4 @@
-import { db } from "../lib/supabase";
+import { db } from "../../lib/supabase";
 import { redirect } from "next/navigation";
 
 export default async function RedirectPage({
