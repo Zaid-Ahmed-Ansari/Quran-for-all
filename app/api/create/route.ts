@@ -5,6 +5,7 @@ import { db } from "../../lib/supabase";
 export async function POST(req: NextRequest) {
   try {
     const { surah, group, ayah } = await req.json();
+    console.log("BODY RECEIVED:", surah, group, ayah);
 
     const code = nanoid(7).toLowerCase();
     const target = `https://quran-for-all.vercel.app/commentary?surah=${encodeURIComponent(
