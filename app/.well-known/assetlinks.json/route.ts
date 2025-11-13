@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 export function GET() {
-  return NextResponse.json(
-    [
+  return new NextResponse(
+    JSON.stringify([
       {
         relation: ["delegate_permission/common.handle_all_urls"],
         target: {
@@ -13,10 +13,11 @@ export function GET() {
           ]
         }
       }
-    ],
+    ]),
     {
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",        // ★ REQUIRED
+        "Cache-Control": "public, max-age=3600"    // optional
       }
     }
   );
