@@ -103,8 +103,8 @@ export default function ArticlePreview({
   // ==========================================
   if (isShort) {
     return (
-      <div className="flex items-center justify-center min-h-[900px] w-full bg-slate-100 p-8">
-        <div className="relative mx-auto h-[850px] w-full max-w-[400px] rounded-[3.5rem] border-[6px] border-[#424242] bg-[#2d2d2d] shadow-[0_0_0_2px_#525252,0_30px_60px_-15px_rgba(0,0,0,0.6)] ring-1 ring-white/10 overflow-hidden">
+      <div className="flex items-center justify-center min-h-[600px] sm:min-h-[800px] lg:min-h-[900px] w-full bg-slate-100 p-4 sm:p-6 lg:p-8">
+        <div className="relative mx-auto h-[500px] sm:h-[700px] lg:h-[850px] w-full max-w-[95%] sm:max-w-[90%] lg:max-w-[400px] rounded-[2.5rem] sm:rounded-[3rem] lg:rounded-[3.5rem] border-[3px] sm:border-[4px] lg:border-[6px] border-[#424242] bg-[#2d2d2d] shadow-[0_0_0_2px_#525252,0_30px_60px_-15px_rgba(0,0,0,0.6)] ring-1 ring-white/10 overflow-hidden">
           
           {/* Background Layer */}
           <div className="absolute inset-0 z-0 bg-slate-800">
@@ -218,9 +218,9 @@ export default function ArticlePreview({
   // VIEW MODE 2: STANDARD ARTICLE (Scrollable)
   // ==========================================
   return (
-    <div className="flex items-center justify-center min-h-[900px] w-full bg-slate-100 p-8">
+    <div className="flex items-center justify-center min-h-[600px] sm:min-h-[800px] lg:min-h-[900px] w-full bg-slate-100 p-4 sm:p-6 lg:p-8">
       {/* Device Frame */}
-      <div className="relative mx-auto h-[850px] w-full max-w-[400px] rounded-[3.5rem] border-[6px] border-[#424242] bg-[#2d2d2d] shadow-[0_0_0_2px_#525252,0_30px_60px_-15px_rgba(0,0,0,0.6)] ring-1 ring-white/10">
+      <div className="relative mx-auto h-[500px] sm:h-[700px] lg:h-[850px] w-full max-w-[95%] sm:max-w-[90%] lg:max-w-[400px] rounded-[2.5rem] sm:rounded-[3rem] lg:rounded-[3.5rem] border-[3px] sm:border-[4px] lg:border-[6px] border-[#424242] bg-[#2d2d2d] shadow-[0_0_0_2px_#525252,0_30px_60px_-15px_rgba(0,0,0,0.6)] ring-1 ring-white/10">
         
         <div className="relative h-full w-full overflow-hidden rounded-[3.2rem] bg-white text-slate-900 flex flex-col">
           

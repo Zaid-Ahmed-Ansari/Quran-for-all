@@ -69,12 +69,12 @@ export default function ArticlesPage() {
   }
 
   return (
-    <div ref={containerRef} className="max-w-7xl mx-auto space-y-8">
+    <div ref={containerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Articles</h1>
-          <p className="text-slate-500">Manage your written content and translations.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Articles</h1>
+          <p className="text-sm sm:text-base text-slate-500">Manage your written content and translations.</p>
         </div>
         <Link
           href="/admin/articles/new"
@@ -89,9 +89,9 @@ export default function ArticlesPage() {
 
       {/* Content Area */}
       {articles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-12 sm:py-20 text-center">
           <div className="mb-4 rounded-full bg-slate-100 p-4">
-            <svg className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
             </svg>
           </div>
@@ -99,11 +99,11 @@ export default function ArticlesPage() {
           <p className="mt-1 text-slate-500">Get started by creating your first piece of content.</p>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {articles.map((article) => (
             <div
               key={article.id}
-              className="article-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
+              className="article-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
             >
               <div>
                 <div className="mb-4 flex items-center justify-between">

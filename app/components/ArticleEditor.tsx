@@ -6,7 +6,7 @@ import {
   Plus, GripVertical, Trash2, ChevronUp, ChevronDown, Save, Eye, 
   Type, Heading, FileText, Quote, BookOpen, Tag, Settings, 
   Layout, Globe, Hash, Link as LinkIcon, AlertCircle, CheckCircle2,
-  MoreVertical, X, Image as ImageIcon, Upload, Loader2
+  MoreVertical, X, Image as ImageIcon, Upload, Loader2, Menu
 } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase/client";
 
@@ -566,6 +566,7 @@ To fix this:
 
   // --- UI State ---
   const [activeTab, setActiveTab] = useState<"general" | "taxonomy" | "refs">("general");
+  const [showSidebar, setShowSidebar] = useState(false);
   const [relevance, setRelevance] = useState(5);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(initialGroupId || null);
   const [groupSearchId, setGroupSearchId] = useState("");
@@ -679,44 +680,52 @@ To fix this:
   useEffect(() => { if (initialTopics) setSelectedTopics(initialTopics); if (initialTopicRelevancyScores) setTopicRelevancyScores(initialTopicRelevancyScores); }, [initialTopics]);
 
   return (
-    <div className="flex h-screen w-full bg-white overflow-hidden font-sans text-slate-900">
+    <div className="flex min-h-screen w-full bg-white overflow-hidden font-sans text-slate-900">
       
       {/* --- LEFT: Main Editor Canvas --- */}
-      <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-slate-50/30">
+      <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden bg-slate-50/30">
         
         {/* Top Bar */}
-        <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur px-8 flex items-center justify-between z-10 sticky top-0">
+        <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur px-4 sm:px-6 lg:px-8 flex items-center justify-between z-10 sticky top-0">
           <div className="flex items-center gap-3">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setShowSidebar(true)}
+              className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              aria-label="Open sidebar"
+            >
+              <Menu size={20} className="text-slate-700" />
+            </button>
             <div className="h-8 w-8 rounded bg-slate-900 text-white flex items-center justify-center">
               <FileText size={16} />
             </div>
             <div>
               <h1 className="text-sm font-semibold text-slate-900 leading-tight">Editor</h1>
-              <div className="text-xs text-slate-500 flex items-center gap-1">
+              <div className="text-xs text-slate-500 flex items-center gap-1 hidden sm:flex">
                 {isSaving ? "Saving..." : saveStatus.message || (articleId ? `ID: ${articleId}` : "New Draft")}
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
              {saveStatus.type === 'error' && (
-                <span className="text-xs text-red-600 font-medium flex items-center gap-1 bg-red-50 px-2 py-1 rounded">
-                   <AlertCircle size={12} /> {saveStatus.message}
+                <span className="text-xs text-red-600 font-medium flex items-center gap-1 bg-red-50 px-2 py-1 rounded hidden sm:flex">
+                   <AlertCircle size={12} /> <span className="hidden md:inline">{saveStatus.message}</span>
                 </span>
              )}
             <button 
               onClick={handleSave} 
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50"
             >
-              {isSaving ? <span className="animate-pulse">Saving...</span> : <><Save size={14} /> Publish</>}
+              {isSaving ? <span className="animate-pulse hidden sm:inline">Saving...</span> : <><Save size={14} /> <span className="hidden sm:inline">Publish</span></>}
             </button>
           </div>
         </header>
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto pb-32 scroll-smooth">
-          <div className="max-w-3xl mx-auto px-8 py-12 pl-16">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pl-4 sm:pl-8 lg:pl-16">
             
             {/* Meta Header Inputs */}
             <div className="group mb-8">
@@ -756,31 +765,31 @@ To fix this:
                     onBlur={() => setActiveBlockIndex(null)}
                   >
                     {/* Hover Controls (Left Gutter - positioned inside viewport) */}
-                    <div className="absolute -left-14 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <div className="absolute -left-12 sm:-left-14 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10">
                       <div className="flex flex-col bg-white border border-slate-200 rounded-md shadow-sm overflow-hidden">
                         <button 
                           onClick={() => moveBlock(index, 'up')} 
                           disabled={index === 0}
-                          className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                          className="p-2 sm:p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                           title="Move up"
                         >
-                           <ChevronUp size={12} />
+                           <ChevronUp size={14} className="sm:w-3 sm:h-3" />
                         </button>
                         <button 
                           onClick={() => moveBlock(index, 'down')} 
                           disabled={index === blocks.length - 1}
-                          className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                          className="p-2 sm:p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                           title="Move down"
                         >
-                           <ChevronDown size={12} />
+                           <ChevronDown size={14} className="sm:w-3 sm:h-3" />
                         </button>
                       </div>
                       <button 
                         onClick={() => removeBlock(index)} 
-                        className="p-1.5 bg-white border border-slate-200 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors"
+                        className="p-2 sm:p-1.5 bg-white border border-slate-200 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                         title="Delete block"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={14} className="sm:w-3 sm:h-3" />
                       </button>
                     </div>
 
@@ -829,7 +838,7 @@ To fix this:
         </div>
 
         {/* Bottom Floating Bar for Add Block (always in viewport) */}
-        <div className="fixed bottom-6 left-0 right-0 lg:right-[22rem] flex justify-center z-30 pointer-events-none px-4">
+        <div className="fixed bottom-6 left-0 right-4 xl:right-[22rem] flex justify-center z-30 pointer-events-none px-4">
            <div className="bg-white/90 backdrop-blur-md border border-slate-200 shadow-xl rounded-full px-2 py-2 flex items-center gap-1 pointer-events-auto transform transition-transform hover:scale-105">
               {Object.entries(blockConfig).map(([key, conf]) => (
                  <button
@@ -849,7 +858,30 @@ To fix this:
       </div>
 
       {/* --- RIGHT: Settings Sidebar --- */}
-      <div className="w-80 border-l border-slate-200 bg-white flex flex-col h-full z-20 shadow-[0_0_20px_rgba(0,0,0,0.03)]">
+      {/* Mobile Overlay Backdrop */}
+      {showSidebar && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`fixed lg:static inset-y-0 right-0 w-80 border-l border-slate-200 bg-white flex flex-col h-full z-50 lg:z-20 shadow-[0_0_20px_rgba(0,0,0,0.03)] transform transition-transform duration-300 ${
+        showSidebar ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+      }`}>
+        {/* Sidebar Header with Close Button */}
+        <div className="flex items-center justify-between p-4 lg:hidden border-b border-slate-200">
+          <h2 className="text-sm font-semibold text-slate-900">Settings</h2>
+          <button
+            onClick={() => setShowSidebar(false)}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            aria-label="Close sidebar"
+          >
+            <X size={20} className="text-slate-700" />
+          </button>
+        </div>
+        
         {/* Tabs */}
         <div className="flex border-b border-slate-100">
           <button 
@@ -872,7 +904,7 @@ To fix this:
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 sm:space-y-8 custom-scrollbar">
           
           {/* --- Tab: General --- */}
           {activeTab === "general" && (

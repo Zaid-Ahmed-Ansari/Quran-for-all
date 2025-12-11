@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import ArticleEditor from "../../../components/ArticleEditor";
 import ArticlePreview from "../../../components/ArticlePreview";
 import { getSupabaseClient } from "../../../lib/supabase/client";
@@ -26,6 +27,7 @@ export default function NewArticlePage() {
   const [propheticWisdomTerm, setPropheticWisdomTerm] = useState("");
   const [quranTerm, setQuranTerm] = useState("");
   const [isShort, setIsShort] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleSave = async (articleData: any) => {
     try {
@@ -196,11 +198,31 @@ export default function NewArticlePage() {
   };
 
   return (
-    <div>
-     
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="px-4 sm:px-6 lg:px-8">
+      {/* Toggle Preview Button */}
+      <div className="mb-4 flex justify-end">
+        <button
+          onClick={() => setShowPreview(!showPreview)}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
+          aria-label={showPreview ? "Hide Preview" : "Show Preview"}
+        >
+          {showPreview ? (
+            <>
+              <EyeOff size={18} />
+              <span className="hidden sm:inline">Hide Preview</span>
+            </>
+          ) : (
+            <>
+              <Eye size={18} />
+              <span className="hidden sm:inline">Show Preview</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className={`grid gap-4 sm:gap-6 ${showPreview ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
         {/* Left Panel - Editor */}
-        <div className="lg:sticky lg:top-8 lg:h-fit">
+        <div className={`${showPreview ? '' : 'xl:col-span-2'} ${showPreview ? 'xl:sticky xl:top-8 xl:h-fit' : ''}`}>
           <ArticleEditor
             title={title}
             excerpt={excerpt}
@@ -233,17 +255,18 @@ export default function NewArticlePage() {
         </div>
 
         {/* Right Panel - Preview */}
-        <div className="lg:sticky lg:top-8 lg:h-fit" style={{ zIndex: 0 }}>
-          
-          <ArticlePreview
-            title={title || "Article Title"}
-            excerpt={excerpt}
-            blocks={blocks}
-            readTime={readTimeMinutes}
-            imagePath={imagePath ? (imagePath.includes('/') ? imagePath.split('/').pop() : imagePath) : undefined}
-            isShort={isShort}
-          />
-        </div>
+        {showPreview && (
+          <div className="xl:sticky xl:top-8 xl:h-fit transition-opacity duration-300" style={{ zIndex: 0 }}>
+            <ArticlePreview
+              title={title || "Article Title"}
+              excerpt={excerpt}
+              blocks={blocks}
+              readTime={readTimeMinutes}
+              imagePath={imagePath ? (imagePath.includes('/') ? imagePath.split('/').pop() : imagePath) : undefined}
+              isShort={isShort}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
