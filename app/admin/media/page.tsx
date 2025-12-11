@@ -22,6 +22,7 @@ interface MediaItem {
   image_path: string | null;
   sources: any;
   language_id: number;
+  duration_minutes: number | null;
 }
 
 interface Group {
@@ -53,6 +54,7 @@ export default function MediaPage() {
     type: "video" as "video" | "audio",
     imagePath: "",
     languageId: 1,
+    durationMinutes: "",
     youtubeLink: "",
     spotifyLink: "",
     soundcloudLink: "",
@@ -417,6 +419,18 @@ To fix this:
         return;
       }
 
+      // Validate duration
+      const durationValue = formData.durationMinutes.trim();
+      if (!durationValue) {
+        setSaveStatus({ type: "error", message: "Duration is required." });
+        return;
+      }
+      const durationInt = parseInt(durationValue, 10);
+      if (isNaN(durationInt) || durationInt < 1) {
+        setSaveStatus({ type: "error", message: "Duration must be a valid positive integer." });
+        return;
+      }
+
       const sourcesJson = buildSourcesJson();
 
       const client = getSupabaseClient();
@@ -428,6 +442,7 @@ To fix this:
           image_path: formData.imagePath || null,
           sources: sourcesJson,
           language_id: formData.languageId,
+          duration_minutes: durationInt,
         },
       ]).select();
 
@@ -469,6 +484,7 @@ To fix this:
           type: "video",
           imagePath: "",
           languageId: 1,
+          durationMinutes: "",
           youtubeLink: "",
           spotifyLink: "",
           soundcloudLink: "",
@@ -620,6 +636,25 @@ To fix this:
                   className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-emerald-500/20"
                   placeholder="e.g., The Story of Yusuf"
                 />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Duration (minutes) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={formData.durationMinutes}
+                  onChange={(e) => setFormData({ ...formData, durationMinutes: e.target.value })}
+                  className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-emerald-500/20"
+                  placeholder="e.g., 15"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Enter the duration in minutes (whole number only, will be rounded)
+                </p>
               </div>
 
               <div>
