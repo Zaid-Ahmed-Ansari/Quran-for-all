@@ -7,7 +7,7 @@ import ArticlePreview from "../../../../components/ArticlePreview";
 import { getSupabaseClient } from "../../../../lib/supabase/client";
 
 interface Block {
-  type: "subheading" | "normalText" | "verse" | "quote";
+  type: "subheading" | "normalText" | "boldText" | "verse" | "quote";
   text_content: string;
 }
 
@@ -338,7 +338,7 @@ export default function EditArticlePage() {
         if (secondaryRefsError) throw secondaryRefsError;
       }
 
-      // Insert new group link (group links were already deleted above)
+      // Insert new group link
       if (articleData.group_id) {
         const { error: groupLinkError } = await client
           .from("article_group_links")
@@ -395,7 +395,10 @@ export default function EditArticlePage() {
             onLanguageIdChange={setLanguageId}
             onSourceChange={setSource}
             onPrimaryReferenceChange={setPrimaryReference}
-            onSecondaryReferenceChange={setSecondaryReference}
+            onSecondaryReferenceChange={(ref) => {
+              // This prop is for single secondary reference, but we use array
+              // We'll handle it via initialSecondaryReferences instead
+            }}
             onHadithReferenceChange={setHadithReference}
             onPropheticWisdomTermChange={setPropheticWisdomTerm}
             onQuranTermChange={setQuranTerm}
@@ -405,12 +408,12 @@ export default function EditArticlePage() {
             initialGroupId={selectedGroupId}
             initialSecondaryReferences={secondaryReferences}
             onSave={handleSave}
-            articleId={articleId}
+            articleId={undefined}
           />
         </div>
 
         {/* Right Panel - Preview */}
-        <div className="lg:sticky lg:top-8 lg:h-fit" style={{ zIndex: 0 }}>
+        <div className="lg:sticky lg:top-8 lg:h-fit">
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-700 mb-2">
               Live Preview
@@ -419,7 +422,7 @@ export default function EditArticlePage() {
           <ArticlePreview
             title={title || "Article Title"}
             excerpt={excerpt}
-            blocks={blocks.filter((b) => b.type !== "intro")} // Filter out any intro blocks
+            blocks={blocks}
             readTime={readTimeMinutes}
             imagePath={imagePath ? (imagePath.includes('/') ? imagePath.split('/').pop() : imagePath) : undefined}
             isShort={isShort}
@@ -429,4 +432,3 @@ export default function EditArticlePage() {
     </div>
   );
 }
-

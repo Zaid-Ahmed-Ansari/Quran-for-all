@@ -44,3 +44,4 @@ ON public.media_item_group_links
 FOR ALL
 USING (auth.role() = 'authenticated')
 WITH CHECK (auth.role() = 'authenticated');
+
