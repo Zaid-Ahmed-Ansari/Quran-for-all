@@ -548,7 +548,13 @@ To fix this:
   // Metadata Handlers
   const handleLanguageIdChange = (v: number) => onLanguageIdChange ? onLanguageIdChange(v) : setInternalLanguageId(v);
   const handleReadTimeChange = (v: number) => onReadTimeChange ? onReadTimeChange(v) : setInternalReadTime(v);
-  const handleIsShortChange = (v: boolean) => onIsShortChange ? onIsShortChange(v) : setInternalIsShort(v);
+  const handleIsShortChange = (v: boolean) => {
+    if (v && activeTab === "taxonomy") {
+      // Switch to general tab if taxonomy is hidden for short articles
+      setActiveTab("general");
+    }
+    onIsShortChange ? onIsShortChange(v) : setInternalIsShort(v);
+  };
   const handleSourceChange = (v: string) => onSourceChange ? onSourceChange(v) : setInternalSource(v);
   const handlePrimaryReferenceChange = (v: string) => onPrimaryReferenceChange ? onPrimaryReferenceChange(v) : setInternalPrimaryReference(v);
   const handleHadithReferenceChange = (v: string) => onHadithReferenceChange ? onHadithReferenceChange(v) : setInternalHadithReference(v);
@@ -584,12 +590,34 @@ To fix this:
   // --- Validation & Save ---
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    
+    // Title is always required
     if (!title?.trim()) newErrors.title = "Title is required";
-    if (!excerpt?.trim()) newErrors.excerpt = "Excerpt is required";
-    if (blocks.length === 0) newErrors.blocks = "Content is required";
+    
+    // Read time is always required
+    if (!readTime || readTime < 1) newErrors.readTime = "Read time is required (minimum 1 minute)";
+    
+    // Group ID is always required
+    if (!selectedGroupId || selectedGroupId < 1) newErrors.groupId = "Group ID is required";
+    
+    // For short articles: only require title, source, and at least one block
+    if (isShort) {
+      if (!source?.trim()) newErrors.source = "Source is required for short articles";
+      if (blocks.length === 0) newErrors.blocks = "At least one content block is required";
+      // Validate that at least one block has content
+      const hasContent = blocks.some(block => block.text_content?.trim());
+      if (!hasContent) newErrors.blocks = "At least one content block with text is required";
+    } else {
+      // For regular articles: require title, excerpt, and blocks
+      if (!excerpt?.trim()) newErrors.excerpt = "Excerpt is required";
+      if (blocks.length === 0) newErrors.blocks = "Content is required";
+    }
+    
+    // Validate all blocks have content (only show error for empty blocks)
     blocks.forEach((block, index) => {
       if (!block.text_content?.trim()) newErrors[`block_${index}`] = "Empty block";
     });
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -606,7 +634,7 @@ To fix this:
     try {
       const articleData = {
         title: title.trim(),
-        excerpt: excerpt.trim(),
+        excerpt: isShort ? null : (excerpt.trim() || null),
         language_id: languageId,
         image_path: imagePath || null,
         read_time_minutes: readTime,
@@ -618,8 +646,8 @@ To fix this:
         prophetic_wisdom_term: propheticWisdomTerm.trim().substring(0, 255) || null,
         quran_term: quranTerm.trim().substring(0, 255) || null,
         source: source.trim() || null,
-        tags: selectedTags, // Array of tag names (strings)
-        topics: selectedTopics.map(name => ({ topic_name: name, relevancy_score: topicRelevancyScores[name] || 5 })),
+        tags: isShort ? [] : selectedTags, // No tags for short articles
+        topics: isShort ? [] : selectedTopics.map(name => ({ topic_name: name, relevancy_score: topicRelevancyScores[name] || 5 })), // No topics for short articles
         group_id: selectedGroupId,
         blocks: blocks.map((b, i) => ({ type: b.type, text_content: b.text_content.trim(), block_order: i })),
         articleId,
@@ -739,17 +767,19 @@ To fix this:
                {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
             </div>
 
-            <div className="group mb-12 relative">
-               <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-              <textarea
-                value={excerpt}
-                onChange={e => setExcerpt(e.target.value)}
-                placeholder="Add a short excerpt or summary..."
-                className="w-full text-xl text-slate-500 placeholder:text-slate-300 border-none outline-none bg-transparent p-0 pl-4 resize-none font-serif"
-                rows={2}
-              />
-              {errors.excerpt && <p className="text-xs text-red-500 mt-1 pl-4">{errors.excerpt}</p>}
-            </div>
+            {!isShort && (
+              <div className="group mb-12 relative">
+                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                <textarea
+                  value={excerpt}
+                  onChange={e => setExcerpt(e.target.value)}
+                  placeholder="Add a short excerpt or summary..."
+                  className="w-full text-xl text-slate-500 placeholder:text-slate-300 border-none outline-none bg-transparent p-0 pl-4 resize-none font-serif"
+                  rows={2}
+                />
+                {errors.excerpt && <p className="text-xs text-red-500 mt-1 pl-4">{errors.excerpt}</p>}
+              </div>
+            )}
 
             {/* Dynamic Blocks */}
             <div className="space-y-4 min-h-[200px]">
@@ -890,12 +920,14 @@ To fix this:
           >
             General
           </button>
-          <button 
-            onClick={() => setActiveTab("taxonomy")} 
-            className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'taxonomy' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-          >
-            Tags
-          </button>
+          {!isShort && (
+            <button 
+              onClick={() => setActiveTab("taxonomy")} 
+              className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'taxonomy' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Tags
+            </button>
+          )}
           <button 
             onClick={() => setActiveTab("refs")} 
             className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'refs' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
@@ -998,21 +1030,44 @@ To fix this:
                         </select>
                     </div>
                     <div>
-                       <span className="text-xs text-slate-500 mb-1 block">Read Time (min)</span>
+                       <span className="text-xs text-slate-500 mb-1 block">Read Time (min) <span className="text-red-500">*</span></span>
                        <input 
                           type="number" 
+                          min="1"
+                          required
                           value={readTime} 
                           onChange={e => handleReadTimeChange(Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none transition-all"
+                          className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none transition-all ${
+                            errors.readTime ? 'border-red-300' : 'border-slate-200'
+                          }`}
                         />
+                       {errors.readTime && <p className="text-xs text-red-500 mt-1">{errors.readTime}</p>}
                     </div>
                  </div>
+              </section>
+
+              <section className="space-y-3 pt-4 border-t border-slate-100">
+                 <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                    <Settings size={12} /> Group ID <span className="text-red-500 text-xs normal-case font-normal">*</span>
+                 </label>
+                 <input 
+                    type="number"
+                    min="1"
+                    required
+                    value={selectedGroupId || ''}
+                    onChange={e => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
+                    placeholder="Group ID (required)"
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none ${
+                      errors.groupId ? 'border-red-300' : 'border-slate-200'
+                    }`}
+                 />
+                 {errors.groupId && <p className="text-xs text-red-500 mt-1">{errors.groupId}</p>}
               </section>
             </div>
           )}
 
           {/* --- Tab: Taxonomy (Tags/Topics) --- */}
-          {activeTab === "taxonomy" && (
+          {activeTab === "taxonomy" && !isShort && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                <section className="space-y-3">
                   <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
@@ -1252,19 +1307,6 @@ To fix this:
                      </div>
                   )}
                </section>
-
-               <section className="space-y-3 pt-4 border-t border-slate-100">
-                  <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                     <Settings size={12} /> Group ID
-                  </label>
-                  <input 
-                     type="number"
-                     value={selectedGroupId || ''}
-                     onChange={e => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
-                     placeholder="Group ID"
-                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
-                  />
-               </section>
             </div>
           )}
 
@@ -1274,13 +1316,17 @@ To fix this:
                <section className="space-y-3">
                   <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
                      <Globe size={12} /> Sources
+                     {isShort && <span className="text-red-500 text-xs normal-case font-normal">*</span>}
                   </label>
                   <div className="space-y-3">
                      <input 
-                        type="text" placeholder="Source Name"
+                        type="text" placeholder={isShort ? "Source Name (required)" : "Source Name"}
                         value={source} onChange={e => handleSourceChange(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
+                        className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none ${
+                          errors.source ? 'border-red-300' : 'border-slate-200'
+                        }`}
                      />
+                     {errors.source && <p className="text-xs text-red-500 mt-1">{errors.source}</p>}
                      <input 
                         type="text" placeholder="Primary Reference"
                         value={primaryReference} onChange={e => handlePrimaryReferenceChange(e.target.value)}

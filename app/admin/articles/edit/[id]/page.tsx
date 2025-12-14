@@ -340,17 +340,19 @@ export default function EditArticlePage() {
         if (secondaryRefsError) throw secondaryRefsError;
       }
 
-      // Insert new group link
-      if (articleData.group_id) {
-        const { error: groupLinkError } = await client
-          .from("article_group_links")
-          .insert([{
-            article_id: articleId,
-            group_id: articleData.group_id,
-          }]);
-
-        if (groupLinkError) throw groupLinkError;
+      // Insert new group link (required)
+      if (!articleData.group_id) {
+        throw new Error("Group ID is required");
       }
+      
+      const { error: groupLinkError } = await client
+        .from("article_group_links")
+        .insert([{
+          article_id: articleId,
+          group_id: articleData.group_id,
+        }]);
+
+      if (groupLinkError) throw groupLinkError;
 
       // Redirect to articles list
       router.push("/admin/articles");

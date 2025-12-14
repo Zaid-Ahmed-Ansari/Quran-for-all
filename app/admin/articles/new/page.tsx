@@ -163,17 +163,19 @@ export default function NewArticlePage() {
         }
       }
 
-      // Insert group link
-      if (articleData.group_id) {
-        const { error: groupLinkError } = await client
-          .from("article_group_links")
-          .insert([{
-            article_id: article.id,
-            group_id: articleData.group_id,
-          }]);
-
-        if (groupLinkError) throw groupLinkError;
+      // Insert group link (required)
+      if (!articleData.group_id) {
+        throw new Error("Group ID is required");
       }
+      
+      const { error: groupLinkError } = await client
+        .from("article_group_links")
+        .insert([{
+          article_id: article.id,
+          group_id: articleData.group_id,
+        }]);
+
+      if (groupLinkError) throw groupLinkError;
 
       // Insert secondary references
       if (articleData.secondary_references && articleData.secondary_references.length > 0) {

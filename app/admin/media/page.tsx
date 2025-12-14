@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import gsap from "gsap";
-import { X, Image as ImageIcon, Upload, Loader2, AlertCircle, CheckCircle2, Link as LinkIcon, Plus } from "lucide-react";
+import { X, Image as ImageIcon, Upload, Loader2, AlertCircle, CheckCircle2, Link as LinkIcon, Plus, ChevronDown, ChevronRight, Search, Trash2, Edit, Filter } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // --- Language Mapping ---
 const LANGUAGE_MAP: Record<number, string> = {
@@ -23,6 +24,13 @@ interface MediaItem {
   sources: any;
   language_id: number;
   duration_minutes: number | null;
+  media_item_group_links?: { group_id: number }[];
+  groupIds?: number[];
+}
+
+interface GroupedMedia {
+  groupId: number | null;
+  items: MediaItem[];
 }
 
 interface Group {
@@ -35,10 +43,17 @@ interface Group {
 }
 
 export default function MediaPage() {
+  const router = useRouter();
   // --- State ---
   const [viewMode, setViewMode] = useState<"list" | "create">("list");
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [groupedMedia, setGroupedMedia] = useState<GroupedMedia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<number | null>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"count" | "groupId">("groupId");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [deletingId, setDeletingId] = useState<string | number | null>(null);
   
   // Linking State
   const [linkingItem, setLinkingItem] = useState<MediaItem | null>(null);
@@ -351,6 +366,10 @@ To fix this:
   }, []);
 
   useEffect(() => {
+    groupAndSortMedia();
+  }, [mediaItems, sortBy, sortOrder, searchQuery]);
+
+  useEffect(() => {
     if (!loading && viewMode === "list" && gridRef.current) {
       gsap.fromTo(
         ".media-card",
@@ -364,7 +383,7 @@ To fix this:
         }
       );
     }
-  }, [loading, viewMode, mediaItems]);
+  }, [loading, viewMode, groupedMedia]);
 
   // --- Actions ---
   const fetchMediaItems = async () => {
@@ -373,16 +392,127 @@ To fix this:
       const client = getSupabaseClient();
       const { data, error } = await client
         .from("media_items")
-        .select("*")
+        .select(`
+          *,
+          media_item_group_links(group_id)
+        `)
         .order("id", { ascending: false });
 
       if (error) throw error;
-      setMediaItems(data || []);
+      
+      const itemsWithGroups: MediaItem[] = (data || []).map((item: any) => ({
+        ...item,
+        groupIds: item.media_item_group_links?.map((link: any) => link.group_id) || [],
+      }));
+      
+      setMediaItems(itemsWithGroups);
     } catch (error: any) {
       console.error("Error fetching media:", error);
       alert(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const groupAndSortMedia = () => {
+    let filtered = mediaItems;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = mediaItems.filter((item) => {
+        const matchesTitle = item.title.toLowerCase().includes(query);
+        const matchesGroupId = item.groupIds?.some(gid => gid.toString().includes(query));
+        return matchesTitle || matchesGroupId;
+      });
+    }
+
+    // Group by group_id (media can have multiple groups, so we'll create entries for each)
+    const grouped: Record<number | "null", MediaItem[]> = {} as Record<number | "null", MediaItem[]>;
+    
+    filtered.forEach((item) => {
+      if (item.groupIds && item.groupIds.length > 0) {
+        item.groupIds.forEach((groupId) => {
+          if (!grouped[groupId]) {
+            grouped[groupId] = [];
+          }
+          // Only add if not already in this group (avoid duplicates)
+          if (!grouped[groupId].find(i => i.id === item.id)) {
+            grouped[groupId].push(item);
+          }
+        });
+      } else {
+        // Items with no groups
+        if (!grouped["null"]) {
+          grouped["null"] = [];
+        }
+        grouped["null"].push(item);
+      }
+    });
+
+    // Convert to array
+    const groupedArray: GroupedMedia[] = Object.entries(grouped).map(([key, items]) => ({
+      groupId: key === "null" ? null : Number(key),
+      items,
+    }));
+
+    // Sort groups
+    groupedArray.sort((a, b) => {
+      if (sortBy === "count") {
+        const diff = a.items.length - b.items.length;
+        return sortOrder === "asc" ? diff : -diff;
+      } else {
+        // Sort by groupId
+        if (a.groupId === null && b.groupId === null) return 0;
+        if (a.groupId === null) return sortOrder === "asc" ? 1 : -1;
+        if (b.groupId === null) return sortOrder === "asc" ? -1 : 1;
+        const diff = a.groupId - b.groupId;
+        return sortOrder === "asc" ? diff : -diff;
+      }
+    });
+
+    setGroupedMedia(groupedArray);
+
+    // Auto-expand all groups on first load
+    if (expandedGroups.size === 0 && groupedArray.length > 0) {
+      setExpandedGroups(new Set(groupedArray.map((g) => g.groupId)));
+    }
+  };
+
+  const toggleGroup = (groupId: number | null) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupId)) {
+      newExpanded.delete(groupId);
+    } else {
+      newExpanded.add(groupId);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const handleDelete = async (itemId: string | number, itemTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${itemTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(itemId);
+    try {
+      const client = getSupabaseClient();
+      
+      // Delete related records first
+      await client.from("media_item_group_links").delete().eq("media_item_id", itemId);
+      
+      // Delete the media item
+      const { error } = await client.from("media_items").delete().eq("id", itemId);
+      
+      if (error) throw error;
+      
+      // Refresh the list
+      await fetchMediaItems();
+    } catch (error: any) {
+      console.error("Error deleting media item:", error);
+      alert(`Error deleting media item: ${error.message}`);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -830,70 +960,172 @@ To fix this:
 
       {/* --- LIST MODE --- */}
       {viewMode === "list" && (
-        <div ref={gridRef} className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {mediaItems.length === 0 ? (
-            <div className="col-span-full py-20 text-center">
-              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="space-y-6">
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by title or group ID..."
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Sort Options */}
+            <div className="flex gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "count" | "groupId")}
+                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
+              >
+                <option value="groupId">Sort by Group ID</option>
+                <option value="count">Sort by Count</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1 text-sm"
+                title={sortOrder === "asc" ? "Ascending" : "Descending"}
+              >
+                <Filter className="h-4 w-4" />
+                {sortOrder === "asc" ? "↑" : "↓"}
+              </button>
+            </div>
+          </div>
+
+          {/* Grouped Media List */}
+          {groupedMedia.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-12 sm:py-20 text-center">
+              <div className="mb-4 rounded-full bg-slate-100 p-4">
+                <svg className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-slate-900">No media yet</h3>
-              <p className="text-slate-500">Upload your first video or audio track.</p>
+              <h3 className="text-lg font-medium text-slate-900">
+                {searchQuery ? "No media found" : "No media yet"}
+              </h3>
+              <p className="mt-1 text-slate-500">
+                {searchQuery ? "Try a different search term" : "Upload your first video or audio track."}
+              </p>
             </div>
           ) : (
-            mediaItems.map((item) => (
-              <div
-                key={item.id}
-                className="media-card group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:border-emerald-300 hover:shadow-md"
-              >
-                {/* Thumbnail Area */}
-                <div className="relative aspect-video bg-slate-100">
-                  {item.image_path ? (
-                    <img
-                      src={item.image_path.startsWith('http') ? item.image_path : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/Images/${item.image_path}`}
-                      alt={item.title}
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-slate-300">
-                      <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+            <div ref={gridRef} className="space-y-2">
+              {groupedMedia.map((group) => (
+                <div
+                  key={group.groupId ?? "null"}
+                  className="border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden"
+                >
+                  {/* Group Header (Accordion) */}
+                  <button
+                    onClick={() => toggleGroup(group.groupId)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      {expandedGroups.has(group.groupId) ? (
+                        <ChevronDown className="h-5 w-5 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-slate-400" />
+                      )}
+                      <div>
+                        <h3 className="font-semibold text-slate-900">
+                          Group ID: {group.groupId ?? "No Group"}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          {group.items.length} item{group.items.length !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Group Content */}
+                  {expandedGroups.has(group.groupId) && (
+                    <div className="border-t border-slate-100 p-4">
+                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {group.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="media-card group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:border-emerald-300 hover:shadow-md"
+                          >
+                            {/* Thumbnail Area */}
+                            <div className="relative aspect-video bg-slate-100">
+                              {item.image_path ? (
+                                <img
+                                  src={item.image_path.startsWith('http') ? item.image_path : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/Images/${item.image_path}`}
+                                  alt={item.title}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-slate-300">
+                                  <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              )}
+                              <div className="absolute top-2 right-2 rounded-md bg-black/60 px-2 py-1 text-xs font-medium uppercase text-white backdrop-blur-sm">
+                                {item.type}
+                              </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-4">
+                              <h3 className="mb-1 truncate text-lg font-bold text-slate-800" title={item.title}>
+                                {item.title}
+                              </h3>
+                              <p className="mb-4 text-xs text-slate-500 line-clamp-2">
+                                {item.description || "No description provided."}
+                              </p>
+                              
+                              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => router.push(`/admin/media/edit/${item.id}`)}
+                                    className="text-xs font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(item.id, item.title)}
+                                    disabled={deletingId === item.id}
+                                    className="text-xs font-medium text-red-600 hover:text-red-700 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {deletingId === item.id ? (
+                                      <>
+                                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
+                                        Deleting...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Trash2 className="h-3 w-3" />
+                                        Delete
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  <div className="absolute top-2 right-2 rounded-md bg-black/60 px-2 py-1 text-xs font-medium uppercase text-white backdrop-blur-sm">
-                    {item.type}
-                  </div>
                 </div>
-
-                {/* Content */}
-                <div className="p-4">
-                  <h3 className="mb-1 truncate text-lg font-bold text-slate-800" title={item.title}>
-                    {item.title}
-                  </h3>
-                  <p className="mb-4 text-xs text-slate-500 line-clamp-2">
-                    {item.description || "No description provided."}
-                  </p>
-                  
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                    <span className="text-xs font-mono text-slate-400">ID: {item.id}</span>
-                    <button
-                      onClick={() => setLinkingItem(item)}
-                      className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 group/btn"
-                    >
-                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                      Link Group
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       )}
