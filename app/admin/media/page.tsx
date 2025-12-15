@@ -24,6 +24,8 @@ interface MediaItem {
   sources: any;
   language_id: number;
   duration_minutes: number | null;
+  duration_hours: number | null;
+  duration_seconds: number | null;
   media_item_group_links?: { group_id: number }[];
   groupIds?: number[];
 }
@@ -70,6 +72,8 @@ export default function MediaPage() {
     imagePath: "",
     languageId: 1,
     durationMinutes: "",
+    durationHours: "",
+    durationSeconds: "",
     youtubeLink: "",
     spotifyLink: "",
     soundcloudLink: "",
@@ -549,7 +553,7 @@ To fix this:
         return;
       }
 
-      // Validate duration
+      // Validate duration (minutes - required)
       const durationValue = formData.durationMinutes.trim();
       if (!durationValue) {
         setSaveStatus({ type: "error", message: "Duration is required." });
@@ -559,6 +563,30 @@ To fix this:
       if (isNaN(durationInt) || durationInt < 1) {
         setSaveStatus({ type: "error", message: "Duration must be a valid positive integer." });
         return;
+      }
+
+      // Optional duration hours
+      const hoursRaw = formData.durationHours.trim();
+      let durationHours: number | null = null;
+      if (hoursRaw) {
+        const hoursInt = parseInt(hoursRaw, 10);
+        if (isNaN(hoursInt) || hoursInt < 1) {
+          setSaveStatus({ type: "error", message: "Duration hours must be a positive integer (leave empty if 0)." });
+          return;
+        }
+        durationHours = hoursInt;
+      }
+
+      // Optional duration seconds
+      const secondsRaw = formData.durationSeconds.trim();
+      let durationSeconds: number | null = null;
+      if (secondsRaw) {
+        const secondsInt = parseInt(secondsRaw, 10);
+        if (isNaN(secondsInt) || secondsInt < 1) {
+          setSaveStatus({ type: "error", message: "Duration seconds must be a positive integer (leave empty if 0)." });
+          return;
+        }
+        durationSeconds = secondsInt;
       }
 
       const sourcesJson = buildSourcesJson();
@@ -573,6 +601,8 @@ To fix this:
           sources: sourcesJson,
           language_id: formData.languageId,
           duration_minutes: durationInt,
+          duration_hours: durationHours,
+          duration_seconds: durationSeconds,
         },
       ]).select();
 
@@ -615,6 +645,8 @@ To fix this:
           imagePath: "",
           languageId: 1,
           durationMinutes: "",
+          durationHours: "",
+          durationSeconds: "",
           youtubeLink: "",
           spotifyLink: "",
           soundcloudLink: "",
@@ -785,6 +817,43 @@ To fix this:
                 <p className="mt-1 text-xs text-slate-500">
                   Enter the duration in minutes (whole number only, will be rounded)
                 </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Duration (hours) <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={formData.durationHours}
+                    onChange={(e) => setFormData({ ...formData, durationHours: e.target.value })}
+                    className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-emerald-500/20"
+                    placeholder="e.g., 1"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    If the value would be 0, leave this field empty.
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Duration (seconds) <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={formData.durationSeconds}
+                    onChange={(e) => setFormData({ ...formData, durationSeconds: e.target.value })}
+                    className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-emerald-500/20"
+                    placeholder="e.g., 30"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    If the value would be 0, leave this field empty.
+                  </p>
+                </div>
               </div>
 
               <div>

@@ -24,6 +24,8 @@ export default function EditMediaPage() {
     imagePath: "",
     languageId: 1,
     durationMinutes: "",
+     durationHours: "",
+     durationSeconds: "",
     youtubeLink: "",
     spotifyLink: "",
     soundcloudLink: "",
@@ -125,6 +127,8 @@ export default function EditMediaPage() {
           imagePath: mediaItem.image_path || "",
           languageId: mediaItem.language_id || 1,
           durationMinutes: mediaItem.duration_minutes?.toString() || "",
+          durationHours: mediaItem.duration_hours?.toString() || "",
+          durationSeconds: mediaItem.duration_seconds?.toString() || "",
           youtubeLink: mediaItem.sources?.youtube || "",
           spotifyLink: mediaItem.sources?.spotify || "",
           soundcloudLink: mediaItem.sources?.soundcloud || "",
@@ -347,6 +351,32 @@ export default function EditMediaPage() {
         return;
       }
 
+      // Optional duration hours
+      const hoursRaw = formData.durationHours.trim();
+      let durationHours: number | null = null;
+      if (hoursRaw) {
+        const hoursInt = parseInt(hoursRaw, 10);
+        if (isNaN(hoursInt) || hoursInt < 1) {
+          setSaveStatus({ type: "error", message: "Duration hours must be a positive integer (leave empty if 0)." });
+          setSaving(false);
+          return;
+        }
+        durationHours = hoursInt;
+      }
+
+      // Optional duration seconds
+      const secondsRaw = formData.durationSeconds.trim();
+      let durationSeconds: number | null = null;
+      if (secondsRaw) {
+        const secondsInt = parseInt(secondsRaw, 10);
+        if (isNaN(secondsInt) || secondsInt < 1) {
+          setSaveStatus({ type: "error", message: "Duration seconds must be a positive integer (leave empty if 0)." });
+          setSaving(false);
+          return;
+        }
+        durationSeconds = secondsInt;
+      }
+
       const sourcesJson = buildSourcesJson();
       const client = getSupabaseClient();
 
@@ -361,6 +391,8 @@ export default function EditMediaPage() {
           sources: sourcesJson,
           language_id: formData.languageId,
           duration_minutes: durationInt,
+          duration_hours: durationHours,
+          duration_seconds: durationSeconds,
         })
         .eq("id", mediaId);
 
@@ -497,6 +529,46 @@ export default function EditMediaPage() {
             className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-emerald-500/20"
             placeholder="e.g., 15"
           />
+          <p className="mt-1 text-xs text-slate-500">
+            Enter the duration in minutes (whole number only, will be rounded)
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Duration (hours) <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={formData.durationHours}
+              onChange={(e) => setFormData({ ...formData, durationHours: e.target.value })}
+              className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-emerald-500/20"
+              placeholder="e.g., 1"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              If the value would be 0, leave this field empty.
+            </p>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Duration (seconds) <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={formData.durationSeconds}
+              onChange={(e) => setFormData({ ...formData, durationSeconds: e.target.value })}
+              className="w-full rounded-lg border-slate-300 px-3 py-2 focus:ring-2 focus:ring-emerald-500/20"
+              placeholder="e.g., 30"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              If the value would be 0, leave this field empty.
+            </p>
+          </div>
         </div>
 
         <div>
@@ -811,3 +883,4 @@ export default function EditMediaPage() {
     </div>
   );
 }
+
