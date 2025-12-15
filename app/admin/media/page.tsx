@@ -90,6 +90,7 @@ export default function MediaPage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<{ type: "success" | "error" | null; message: string }>({ type: null, message: "" });
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -550,6 +551,7 @@ To fix this:
 
       if (validGroupIds.length === 0) {
         setSaveStatus({ type: "error", message: "At least one group ID is required." });
+        setToast({ type: "error", message: "At least one group ID is required." });
         return;
       }
 
@@ -557,11 +559,13 @@ To fix this:
       const durationValue = formData.durationMinutes.trim();
       if (!durationValue) {
         setSaveStatus({ type: "error", message: "Duration is required." });
+        setToast({ type: "error", message: "Duration is required." });
         return;
       }
       const durationInt = parseInt(durationValue, 10);
       if (isNaN(durationInt) || durationInt < 1) {
         setSaveStatus({ type: "error", message: "Duration must be a valid positive integer." });
+        setToast({ type: "error", message: "Duration must be a valid positive integer." });
         return;
       }
 
@@ -572,6 +576,7 @@ To fix this:
         const hoursInt = parseInt(hoursRaw, 10);
         if (isNaN(hoursInt) || hoursInt < 1) {
           setSaveStatus({ type: "error", message: "Duration hours must be a positive integer (leave empty if 0)." });
+          setToast({ type: "error", message: "Duration hours must be a positive integer (leave empty if 0)." });
           return;
         }
         durationHours = hoursInt;
@@ -584,6 +589,7 @@ To fix this:
         const secondsInt = parseInt(secondsRaw, 10);
         if (isNaN(secondsInt) || secondsInt < 1) {
           setSaveStatus({ type: "error", message: "Duration seconds must be a positive integer (leave empty if 0)." });
+          setToast({ type: "error", message: "Duration seconds must be a positive integer (leave empty if 0)." });
           return;
         }
         durationSeconds = secondsInt;
@@ -637,6 +643,7 @@ To fix this:
       }
 
       setSaveStatus({ type: "success", message: "Media created successfully!" });
+      setToast({ type: "success", message: "Media created successfully!" });
       setTimeout(() => {
         setFormData({
           title: "",
@@ -658,6 +665,7 @@ To fix this:
       }, 1500);
     } catch (error: any) {
       setSaveStatus({ type: "error", message: error.message || "Failed to create media item" });
+      setToast({ type: "error", message: error.message || "Failed to create media item" });
     }
   };
 
@@ -746,22 +754,6 @@ To fix this:
           <div className="max-w-2xl mx-auto rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
             <h2 className="mb-6 text-xl font-bold text-slate-800">New Media Item</h2>
             <form onSubmit={handleCreateSubmit} className="space-y-5">
-              {/* Status Messages */}
-              {saveStatus.type && saveStatus.message && (
-                <div className={`p-3 rounded-lg flex items-center gap-2 ${
-                  saveStatus.type === "error" 
-                    ? "bg-red-50 border border-red-200 text-red-800" 
-                    : "bg-green-50 border border-green-200 text-green-800"
-                }`}>
-                  {saveStatus.type === "error" ? (
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                  )}
-                  <p className="text-sm font-medium">{saveStatus.message}</p>
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
@@ -1471,6 +1463,18 @@ To fix this:
           </div>
         </>,
         document.body
+      )}
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-[10000]">
+          <div
+            className={`max-w-sm rounded-lg shadow-lg px-4 py-3 text-sm font-medium text-white ${
+              toast.type === "error" ? "bg-red-600" : "bg-emerald-600"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
       )}
     </div>
   );
