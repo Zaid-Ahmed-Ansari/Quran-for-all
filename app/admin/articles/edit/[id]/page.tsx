@@ -24,6 +24,7 @@ export default function EditArticlePage() {
   const [imagePath, setImagePath] = useState("");
   const [readTimeMinutes, setReadTimeMinutes] = useState(0);
   const [isShort, setIsShort] = useState(false);
+  const [isIntroduction, setIsIntroduction] = useState(false);
   const [source, setSource] = useState("");
   const [primaryReference, setPrimaryReference] = useState("");
   const [secondaryReferences, setSecondaryReferences] = useState<string[]>([]);
@@ -62,6 +63,7 @@ export default function EditArticlePage() {
         setImagePath(article.image_path || "");
         setReadTimeMinutes(article.read_time_minutes || 0);
         setIsShort(article.is_short || false);
+        setIsIntroduction(article.is_introduction || false);
         setSource(article.source || "");
         setPrimaryReference(article.primary_reference || "");
         setHadithReference(article.hadith_reference || "");
@@ -173,6 +175,7 @@ export default function EditArticlePage() {
           image_path: articleData.image_path,
           read_time_minutes: articleData.read_time_minutes,
           is_short: articleData.is_short,
+          is_introduction: articleData.is_introduction,
           relevance: articleData.relevance,
           primary_reference: articleData.primary_reference,
           hadith_reference: articleData.hadith_reference,
@@ -237,7 +240,7 @@ export default function EditArticlePage() {
               .insert([{ name: tagName.trim() }])
               .select("id")
               .single();
-            
+
             if (createError) throw createError;
             tagId = newTag.id;
           }
@@ -289,7 +292,7 @@ export default function EditArticlePage() {
               .insert([{ name: topicName.trim() }])
               .select("id")
               .single();
-            
+
             if (createError) throw createError;
             topicId = newTopic.id;
           }
@@ -340,19 +343,21 @@ export default function EditArticlePage() {
         if (secondaryRefsError) throw secondaryRefsError;
       }
 
-      // Insert new group link (required)
-      if (!articleData.group_id) {
+      // Insert new group link (required unless introduction)
+      if (!articleData.group_id && !articleData.is_introduction) {
         throw new Error("Group ID is required");
       }
-      
-      const { error: groupLinkError } = await client
-        .from("article_group_links")
-        .insert([{
-          article_id: articleId,
-          group_id: articleData.group_id,
-        }]);
 
-      if (groupLinkError) throw groupLinkError;
+      if (articleData.group_id) {
+        const { error: groupLinkError } = await client
+          .from("article_group_links")
+          .insert([{
+            article_id: articleId,
+            group_id: articleData.group_id,
+          }]);
+
+        if (groupLinkError) throw groupLinkError;
+      }
 
       // Redirect to articles list
       router.push("/admin/articles");
@@ -415,6 +420,8 @@ export default function EditArticlePage() {
             onBlocksChange={setBlocks}
             onImagePathChange={setImagePath}
             onReadTimeChange={setReadTimeMinutes}
+            isIntroduction={isIntroduction}
+            onIsIntroductionChange={setIsIntroduction}
             onIsShortChange={setIsShort}
             onLanguageIdChange={setLanguageId}
             onSourceChange={setSource}

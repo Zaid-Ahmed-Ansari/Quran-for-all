@@ -27,6 +27,7 @@ export default function NewArticlePage() {
   const [propheticWisdomTerm, setPropheticWisdomTerm] = useState("");
   const [quranTerm, setQuranTerm] = useState("");
   const [isShort, setIsShort] = useState(false);
+  const [isIntroduction, setIsIntroduction] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   const handleSave = async (articleData: any) => {
@@ -44,6 +45,7 @@ export default function NewArticlePage() {
             image_path: articleData.image_path,
             read_time_minutes: articleData.read_time_minutes,
             is_short: articleData.is_short,
+            is_introduction: articleData.is_introduction,
             relevance: articleData.relevance,
             primary_reference: articleData.primary_reference,
             hadith_reference: articleData.hadith_reference,
@@ -98,7 +100,7 @@ export default function NewArticlePage() {
               .insert([{ name: tagName.trim() }])
               .select("id")
               .single();
-            
+
             if (createError) throw createError;
             tagId = newTag.id;
           }
@@ -142,7 +144,7 @@ export default function NewArticlePage() {
               .insert([{ name: topicName.trim() }])
               .select("id")
               .single();
-            
+
             if (createError) throw createError;
             topicId = newTopic.id;
           }
@@ -163,19 +165,21 @@ export default function NewArticlePage() {
         }
       }
 
-      // Insert group link (required)
-      if (!articleData.group_id) {
+      // Insert group link (required unless introduction)
+      if (!articleData.group_id && !articleData.is_introduction) {
         throw new Error("Group ID is required");
       }
-      
-      const { error: groupLinkError } = await client
-        .from("article_group_links")
-        .insert([{
-          article_id: article.id,
-          group_id: articleData.group_id,
-        }]);
 
-      if (groupLinkError) throw groupLinkError;
+      if (articleData.group_id) {
+        const { error: groupLinkError } = await client
+          .from("article_group_links")
+          .insert([{
+            article_id: article.id,
+            group_id: articleData.group_id,
+          }]);
+
+        if (groupLinkError) throw groupLinkError;
+      }
 
       // Insert secondary references
       if (articleData.secondary_references && articleData.secondary_references.length > 0) {
@@ -252,6 +256,8 @@ export default function NewArticlePage() {
             onPropheticWisdomTermChange={setPropheticWisdomTerm}
             onQuranTermChange={setQuranTerm}
             onIsShortChange={setIsShort}
+            isIntroduction={isIntroduction}
+            onIsIntroductionChange={setIsIntroduction}
             onSave={handleSave}
           />
         </div>

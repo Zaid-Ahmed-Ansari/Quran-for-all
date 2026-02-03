@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { 
-  Plus, GripVertical, Trash2, ChevronUp, ChevronDown, Save, Eye, 
-  Type, Heading, FileText, Quote, BookOpen, Tag, Settings, 
+import {
+  Plus, GripVertical, Trash2, ChevronUp, ChevronDown, Save, Eye,
+  Type, Heading, FileText, Quote, BookOpen, Tag, Settings,
   Layout, Globe, Hash, Link as LinkIcon, AlertCircle, CheckCircle2,
   MoreVertical, X, Image as ImageIcon, Upload, Loader2, Menu
 } from "lucide-react";
@@ -37,9 +37,10 @@ interface ArticleEditorProps {
   imagePath?: string;
   readTimeMinutes?: number;
   isShort?: boolean;
+  isIntroduction?: boolean;
   source?: string;
   primaryReference?: string;
-  secondaryReference?: string; 
+  secondaryReference?: string;
   initialSecondaryReferences?: string[];
   hadithReference?: string;
   propheticWisdomTerm?: string;
@@ -48,6 +49,7 @@ interface ArticleEditorProps {
   initialTopics?: string[];
   initialTopicRelevancyScores?: Record<string, number>;
   initialGroupId?: number | null;
+  onIsIntroductionChange?: (value: boolean) => void;
   onIsShortChange?: (value: boolean) => void;
   onTitleChange?: (title: string) => void;
   onExcerptChange?: (excerpt: string) => void;
@@ -73,6 +75,7 @@ export default function ArticleEditor({
   imagePath: propImagePath,
   readTimeMinutes: propReadTimeMinutes,
   isShort: propIsShort,
+  isIntroduction: propIsIntroduction,
   source: propSource,
   primaryReference: propPrimaryReference,
   secondaryReference: propSecondaryReference,
@@ -85,6 +88,7 @@ export default function ArticleEditor({
   onImagePathChange,
   onReadTimeChange,
   onIsShortChange,
+  onIsIntroductionChange,
   onLanguageIdChange,
   onSourceChange,
   onPrimaryReferenceChange,
@@ -105,23 +109,23 @@ export default function ArticleEditor({
     const fetchTagsAndTopics = async () => {
       try {
         const client = getSupabaseClient();
-        
+
         // Fetch tags
         const { data: tags, error: tagsError } = await client
           .from("tags")
           .select("id, name")
           .order("name");
-        
+
         if (!tagsError && tags) {
           setAvailableTags(tags);
         }
-        
+
         // Fetch topics
         const { data: topics, error: topicsError } = await client
           .from("topics")
           .select("id, name")
           .order("name");
-        
+
         if (!topicsError && topics) {
           setAvailableTopics(topics);
         }
@@ -129,7 +133,7 @@ export default function ArticleEditor({
         console.error("Error fetching tags/topics:", error);
       }
     };
-    
+
     fetchTagsAndTopics();
   }, []);
   // --- State Management ---
@@ -139,18 +143,18 @@ export default function ArticleEditor({
   const [internalBlocks, setInternalBlocks] = useState<ContentBlock[]>(
     propBlocks ? propBlocks.map((b, i) => ({ ...b, block_order: i } as ContentBlock)) : []
   );
-  
+
   // Derived state for controlled vs uncontrolled
   const title = propTitle !== undefined ? propTitle : internalTitle;
   const excerpt = propExcerpt !== undefined ? propExcerpt : internalExcerpt;
-  const blocks = propBlocks !== undefined 
+  const blocks = propBlocks !== undefined
     ? propBlocks.map((b, i) => ({ ...b, block_order: i } as ContentBlock))
     : internalBlocks;
 
   // Handlers
   const setTitle = (value: string) => onTitleChange ? onTitleChange(value) : setInternalTitle(value);
   const setExcerpt = (value: string) => onExcerptChange ? onExcerptChange(value) : setInternalExcerpt(value);
-  
+
   const setBlocks = (value: ContentBlock[]) => {
     if (onBlocksChange) {
       onBlocksChange(value.map(b => ({
@@ -174,10 +178,11 @@ export default function ArticleEditor({
   const [topicInput, setTopicInput] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [showTopicSuggestions, setShowTopicSuggestions] = useState(false);
-  
+
   const [internalLanguageId, setInternalLanguageId] = useState(propLanguageId ?? 1);
   const [internalReadTime, setInternalReadTime] = useState(propReadTimeMinutes ?? 5);
   const [internalIsShort, setInternalIsShort] = useState(propIsShort ?? false);
+  const [internalIsIntroduction, setInternalIsIntroduction] = useState(propIsIntroduction ?? false);
   const [internalSource, setInternalSource] = useState(propSource ?? "");
   const [internalPrimaryReference, setInternalPrimaryReference] = useState(propPrimaryReference ?? "");
   const [internalSecondaryReferences, setInternalSecondaryReferences] = useState<string[]>(
@@ -192,6 +197,7 @@ export default function ArticleEditor({
   const languageId = propLanguageId !== undefined ? propLanguageId : internalLanguageId;
   const readTime = propReadTimeMinutes !== undefined ? propReadTimeMinutes : internalReadTime;
   const isShort = propIsShort !== undefined ? propIsShort : internalIsShort;
+  const isIntroduction = propIsIntroduction !== undefined ? propIsIntroduction : internalIsIntroduction;
   const imagePath = propImagePath !== undefined ? propImagePath : internalImagePath;
   const source = propSource !== undefined ? propSource : internalSource;
   const primaryReference = propPrimaryReference !== undefined ? propPrimaryReference : internalPrimaryReference;
@@ -203,28 +209,28 @@ export default function ArticleEditor({
   // Get Supabase URL for image display (supports both public and private buckets)
   const getImageUrl = async (path: string | null | undefined): Promise<string | null> => {
     if (!path) return null;
-    
+
     // If it's already a full URL, return it
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
-    
+
     try {
       const client = getSupabaseClient();
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      
+
       if (!supabaseUrl) {
         console.error("NEXT_PUBLIC_SUPABASE_URL is not defined");
         return null;
       }
-      
+
       // Try to get signed URL first (for private buckets)
       // Signed URLs expire after the specified time (3600 seconds = 1 hour)
       try {
         const { data: signedData, error: signedError } = await client.storage
           .from('Images')
           .createSignedUrl(path, 3600); // Valid for 1 hour
-        
+
         if (!signedError && signedData?.signedUrl) {
           return signedData.signedUrl;
         }
@@ -232,7 +238,7 @@ export default function ArticleEditor({
         // If signed URL fails, try public URL (for public buckets)
         console.warn("Signed URL generation failed, trying public URL:", signedErr);
       }
-      
+
       // Fallback to public URL (for public buckets)
       try {
         const { data } = client.storage.from('Images').getPublicUrl(path);
@@ -242,7 +248,7 @@ export default function ArticleEditor({
       } catch (publicError) {
         console.warn("Public URL also failed:", publicError);
       }
-      
+
       // Last resort: construct public URL manually
       return `${supabaseUrl}/storage/v1/object/public/Images/${path}`;
     } catch (error) {
@@ -255,17 +261,17 @@ export default function ArticleEditor({
   const loadExistingImages = async () => {
     setLoadingImages(true);
     setSaveStatus({ type: null, message: "" });
-    
+
     try {
       const client = getSupabaseClient();
-      
+
       // First, verify bucket exists and is accessible
       const { data: buckets, error: bucketError } = await client.storage.listBuckets();
-      
+
       if (bucketError) {
         throw new Error(`Failed to access storage: ${bucketError.message}`);
       }
-      
+
       // Check if bucket exists, but don't block if it doesn't - let the list operation handle it
       const imagesBucket = buckets?.find(b => b.name === 'Images');
       if (!imagesBucket) {
@@ -273,7 +279,7 @@ export default function ArticleEditor({
         // This allows users to still try uploading which might create the bucket
         console.warn("Storage bucket 'Images' not found. It may be created on first upload.");
       }
-      
+
       // List files in the Article_Images folder
       const { data, error } = await client.storage
         .from('Images')
@@ -336,11 +342,11 @@ To fix this:
         imageFiles.map(async (file) => {
           const path = `Article_Images/${file.name}`;
           const url = await getImageUrl(path);
-          
+
           if (!url) {
             console.warn(`Failed to generate URL for image: ${file.name}`);
           }
-          
+
           return {
             name: file.name,
             url: url || `${supabaseUrl}/storage/v1/object/public/Images/${path}`,
@@ -350,7 +356,7 @@ To fix this:
       );
 
       setExistingImages(imagesWithUrls);
-      
+
       if (imagesWithUrls.length > 0) {
         setSaveStatus({ type: null, message: `Loaded ${imagesWithUrls.length} image(s)` });
       }
@@ -387,16 +393,16 @@ To fix this:
 
     setIsUploadingImage(true);
     setSaveStatus({ type: null, message: "" });
-    
+
     try {
       const client = getSupabaseClient();
-      
+
       // Verify bucket exists
       const { data: buckets, error: bucketError } = await client.storage.listBuckets();
       if (bucketError) {
         throw new Error(`Failed to access storage: ${bucketError.message}`);
       }
-      
+
       // Try to upload directly - if bucket doesn't exist, the error will be more specific
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -479,19 +485,19 @@ To fix this:
       } else {
         setInternalImagePath(imagePath);
       }
-      
+
       const imageUrl = await getImageUrl(imagePath);
       if (!imageUrl) {
         console.warn("Failed to generate preview URL for selected image");
         setSaveStatus({ type: "error", message: "Failed to load image preview. The image may have been deleted." });
         return;
       }
-      
+
       setImagePreview(imageUrl);
       setShowImageModal(false);
       setImageModalMode(null);
       setExistingImages([]);
-      
+
       setSaveStatus({ type: "success", message: "Image selected successfully" });
       setTimeout(() => setSaveStatus({ type: null, message: "" }), 3000);
     } catch (error: any) {
@@ -506,7 +512,7 @@ To fix this:
 
     try {
       const client = getSupabaseClient();
-      
+
       // Delete from storage (only if it's in our bucket)
       if (imagePath.startsWith('Article_Images/')) {
         const { error: deleteError } = await client.storage
@@ -555,6 +561,7 @@ To fix this:
     }
     onIsShortChange ? onIsShortChange(v) : setInternalIsShort(v);
   };
+  const handleIsIntroductionChange = (v: boolean) => onIsIntroductionChange ? onIsIntroductionChange(v) : setInternalIsIntroduction(v);
   const handleSourceChange = (v: string) => onSourceChange ? onSourceChange(v) : setInternalSource(v);
   const handlePrimaryReferenceChange = (v: string) => onPrimaryReferenceChange ? onPrimaryReferenceChange(v) : setInternalPrimaryReference(v);
   const handleHadithReferenceChange = (v: string) => onHadithReferenceChange ? onHadithReferenceChange(v) : setInternalHadithReference(v);
@@ -590,34 +597,34 @@ To fix this:
   // --- Validation & Save ---
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     // Title is always required
     if (!title?.trim()) newErrors.title = "Title is required";
-    
+
     // Read time is always required
     if (!readTime || readTime < 1) newErrors.readTime = "Read time is required (minimum 1 minute)";
-    
-    // Group ID is always required
-    if (!selectedGroupId || selectedGroupId < 1) newErrors.groupId = "Group ID is required";
-    
+
+    // Group ID is required unless it's an introduction article
+    if (!isIntroduction && (!selectedGroupId || selectedGroupId < 1)) newErrors.groupId = "Group ID is required";
+
     // For short articles: only require title, source, and at least one block
     if (isShort) {
-      if (!source?.trim()) newErrors.source = "Source is required for short articles";
+      if (!isIntroduction && !source?.trim()) newErrors.source = "Source is required for short articles";
       if (blocks.length === 0) newErrors.blocks = "At least one content block is required";
       // Validate that at least one block has content
       const hasContent = blocks.some(block => block.text_content?.trim());
       if (!hasContent) newErrors.blocks = "At least one content block with text is required";
     } else {
-      // For regular articles: require title, excerpt, and blocks
-      if (!excerpt?.trim()) newErrors.excerpt = "Excerpt is required";
+      // For regular articles: require title, excerpt (unless intro), and blocks
+      if (!isIntroduction && !excerpt?.trim()) newErrors.excerpt = "Excerpt is required";
       if (blocks.length === 0) newErrors.blocks = "Content is required";
     }
-    
+
     // Validate all blocks have content (only show error for empty blocks)
     blocks.forEach((block, index) => {
       if (!block.text_content?.trim()) newErrors[`block_${index}`] = "Empty block";
     });
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -634,11 +641,12 @@ To fix this:
     try {
       const articleData = {
         title: title.trim(),
-        excerpt: isShort ? null : (excerpt.trim() || null),
+        excerpt: isShort ? null : (excerpt.trim() || null), // Allow null if empty
         language_id: languageId,
         image_path: imagePath || null,
         read_time_minutes: readTime,
         is_short: isShort,
+        is_introduction: isIntroduction,
         relevance: relevance,
         primary_reference: primaryReference.trim().substring(0, 255) || null,
         secondary_references: secondaryReferences.map(r => r.trim()).filter(r => r).map(r => r.substring(0, 255)),
@@ -709,10 +717,10 @@ To fix this:
 
   return (
     <div className="flex min-h-screen w-full bg-white overflow-hidden font-sans text-slate-900">
-      
+
       {/* --- LEFT: Main Editor Canvas --- */}
       <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden bg-slate-50/30">
-        
+
         {/* Top Bar */}
         <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur px-4 sm:px-6 lg:px-8 flex items-center justify-between z-10 sticky top-0">
           <div className="flex items-center gap-3">
@@ -734,15 +742,15 @@ To fix this:
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2 sm:gap-3">
-             {saveStatus.type === 'error' && (
-                <span className="text-xs text-red-600 font-medium flex items-center gap-1 bg-red-50 px-2 py-1 rounded hidden sm:flex">
-                   <AlertCircle size={12} /> <span className="hidden md:inline">{saveStatus.message}</span>
-                </span>
-             )}
-            <button 
-              onClick={handleSave} 
+            {saveStatus.type === 'error' && (
+              <span className="text-xs text-red-600 font-medium flex items-center gap-1 bg-red-50 px-2 py-1 rounded hidden sm:flex">
+                <AlertCircle size={12} /> <span className="hidden md:inline">{saveStatus.message}</span>
+              </span>
+            )}
+            <button
+              onClick={handleSave}
               disabled={isSaving}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50"
             >
@@ -754,7 +762,7 @@ To fix this:
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto pb-32 scroll-smooth">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pl-4 sm:pl-8 lg:pl-16">
-            
+
             {/* Meta Header Inputs */}
             <div className="group mb-8">
               <input
@@ -764,16 +772,16 @@ To fix this:
                 placeholder="Untitled Article"
                 className="w-full text-4xl font-extrabold tracking-tight text-slate-900 placeholder:text-slate-300 border-none outline-none bg-transparent p-0"
               />
-               {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
+              {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
             </div>
 
             {!isShort && (
               <div className="group mb-12 relative">
-                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                 <textarea
                   value={excerpt}
                   onChange={e => setExcerpt(e.target.value)}
-                  placeholder="Add a short excerpt or summary..."
+                  placeholder={isIntroduction ? "Add a short excerpt (Optional for Introductions)" : "Add a short excerpt or summary..."}
                   className="w-full text-xl text-slate-500 placeholder:text-slate-300 border-none outline-none bg-transparent p-0 pl-4 resize-none font-serif"
                   rows={2}
                 />
@@ -786,10 +794,10 @@ To fix this:
               {blocks.map((block, index) => {
                 const config = blockConfig[block.type];
                 const isActive = activeBlockIndex === index;
-                
+
                 return (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className={`relative group transition-all duration-200 ${isActive ? 'scale-[1.01]' : ''}`}
                     onFocus={() => setActiveBlockIndex(index)}
                     onBlur={() => setActiveBlockIndex(null)}
@@ -797,25 +805,25 @@ To fix this:
                     {/* Hover Controls (Left Gutter - positioned inside viewport) */}
                     <div className="absolute -left-12 sm:-left-14 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10">
                       <div className="flex flex-col bg-white border border-slate-200 rounded-md shadow-sm overflow-hidden">
-                        <button 
-                          onClick={() => moveBlock(index, 'up')} 
+                        <button
+                          onClick={() => moveBlock(index, 'up')}
                           disabled={index === 0}
                           className="p-2 sm:p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                           title="Move up"
                         >
-                           <ChevronUp size={14} className="sm:w-3 sm:h-3" />
+                          <ChevronUp size={14} className="sm:w-3 sm:h-3" />
                         </button>
-                        <button 
-                          onClick={() => moveBlock(index, 'down')} 
+                        <button
+                          onClick={() => moveBlock(index, 'down')}
                           disabled={index === blocks.length - 1}
                           className="p-2 sm:p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                           title="Move down"
                         >
-                           <ChevronDown size={14} className="sm:w-3 sm:h-3" />
+                          <ChevronDown size={14} className="sm:w-3 sm:h-3" />
                         </button>
                       </div>
-                      <button 
-                        onClick={() => removeBlock(index)} 
+                      <button
+                        onClick={() => removeBlock(index)}
                         className="p-2 sm:p-1.5 bg-white border border-slate-200 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                         title="Delete block"
                       >
@@ -829,11 +837,11 @@ To fix this:
                       ${config.style}
                       ${errors[`block_${index}`] ? 'ring-2 ring-red-100 bg-red-50/50' : 'hover:bg-slate-50/50'}
                     `}>
-                        {block.type !== 'normalText' && (
-                           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-50 text-[10px] uppercase font-bold text-slate-400 pointer-events-none select-none">
-                              {config.label}
-                           </div>
-                        )}
+                      {block.type !== 'normalText' && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-50 text-[10px] uppercase font-bold text-slate-400 pointer-events-none select-none">
+                          {config.label}
+                        </div>
+                      )}
                       <textarea
                         value={block.text_content}
                         onChange={e => updateBlock(index, e.target.value)}
@@ -845,23 +853,23 @@ To fix this:
                           target.style.height = 'auto';
                           target.style.height = target.scrollHeight + 'px';
                         }}
-                        ref={r => { 
-                          blockRefs.current[index] = r; 
-                          if(r) { 
-                            r.style.height = 'auto'; 
-                            r.style.height = r.scrollHeight + 'px'; 
-                          } 
+                        ref={r => {
+                          blockRefs.current[index] = r;
+                          if (r) {
+                            r.style.height = 'auto';
+                            r.style.height = r.scrollHeight + 'px';
+                          }
                         }}
                       />
                     </div>
                   </div>
                 );
               })}
-              
+
               {blocks.length === 0 && (
-                 <div className="h-40 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400">
-                    <p>Start writing by adding a block below</p>
-                 </div>
+                <div className="h-40 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400">
+                  <p>Start writing by adding a block below</p>
+                </div>
               )}
             </div>
           </div>
@@ -869,21 +877,21 @@ To fix this:
 
         {/* Bottom Floating Bar for Add Block (always in viewport) */}
         <div className="fixed bottom-6 left-0 right-4 xl:right-[22rem] flex justify-center z-30 pointer-events-none px-4">
-           <div className="bg-white/90 backdrop-blur-md border border-slate-200 shadow-xl rounded-full px-2 py-2 flex items-center gap-1 pointer-events-auto transform transition-transform hover:scale-105">
-              {Object.entries(blockConfig).map(([key, conf]) => (
-                 <button
-                    key={key}
-                    onClick={() => addBlock(key as any)}
-                    className="flex flex-col items-center justify-center w-12 h-12 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors gap-1 group relative"
-                    title={`Add ${conf.label}`}
-                 >
-                    <conf.icon size={18} />
-                    <span className="text-[9px] font-medium opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-slate-800 text-white px-2 rounded whitespace-nowrap transition-all delay-75">
-                        {conf.label}
-                    </span>
-                 </button>
-              ))}
-           </div>
+          <div className="bg-white/90 backdrop-blur-md border border-slate-200 shadow-xl rounded-full px-2 py-2 flex items-center gap-1 pointer-events-auto transform transition-transform hover:scale-105">
+            {Object.entries(blockConfig).map(([key, conf]) => (
+              <button
+                key={key}
+                onClick={() => addBlock(key as any)}
+                className="flex flex-col items-center justify-center w-12 h-12 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors gap-1 group relative"
+                title={`Add ${conf.label}`}
+              >
+                <conf.icon size={18} />
+                <span className="text-[9px] font-medium opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-slate-800 text-white px-2 rounded whitespace-nowrap transition-all delay-75">
+                  {conf.label}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -895,11 +903,10 @@ To fix this:
           onClick={() => setShowSidebar(false)}
         />
       )}
-      
+
       {/* Sidebar */}
-      <div className={`fixed lg:static inset-y-0 right-0 w-80 border-l border-slate-200 bg-white flex flex-col h-full z-50 lg:z-20 shadow-[0_0_20px_rgba(0,0,0,0.03)] transform transition-transform duration-300 ${
-        showSidebar ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-      }`}>
+      <div className={`fixed lg:static inset-y-0 right-0 w-80 border-l border-slate-200 bg-white flex flex-col h-full z-50 lg:z-20 shadow-[0_0_20px_rgba(0,0,0,0.03)] transform transition-transform duration-300 ${showSidebar ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+        }`}>
         {/* Sidebar Header with Close Button */}
         <div className="flex items-center justify-between p-4 lg:hidden border-b border-slate-200">
           <h2 className="text-sm font-semibold text-slate-900">Settings</h2>
@@ -911,25 +918,25 @@ To fix this:
             <X size={20} className="text-slate-700" />
           </button>
         </div>
-        
+
         {/* Tabs */}
         <div className="flex border-b border-slate-100">
-          <button 
-            onClick={() => setActiveTab("general")} 
+          <button
+            onClick={() => setActiveTab("general")}
             className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'general' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
           >
             General
           </button>
           {!isShort && (
-            <button 
-              onClick={() => setActiveTab("taxonomy")} 
+            <button
+              onClick={() => setActiveTab("taxonomy")}
               className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'taxonomy' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
             >
               Tags
             </button>
           )}
-          <button 
-            onClick={() => setActiveTab("refs")} 
+          <button
+            onClick={() => setActiveTab("refs")}
             className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'refs' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
           >
             Refs
@@ -937,131 +944,133 @@ To fix this:
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 sm:space-y-8 custom-scrollbar">
-          
+
           {/* --- Tab: General --- */}
           {activeTab === "general" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <section className="space-y-3">
                 <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                   <Layout size={12} /> Formatting
+                  <Layout size={12} /> Formatting
                 </label>
                 <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-3">
-                    <div className="flex items-center justify-between">
-                       <span className="text-sm text-slate-600">Short Article</span>
-                      <input type="checkbox" checked={isShort} onChange={e => handleIsShortChange(e.target.checked)} className="accent-slate-900 h-4 w-4" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Short Article</span>
+                    <input type="checkbox" checked={isShort} onChange={e => handleIsShortChange(e.target.checked)} className="accent-slate-900 h-4 w-4" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Introduction Article</span>
+                    <input type="checkbox" checked={isIntroduction} onChange={e => handleIsIntroductionChange(e.target.checked)} className="accent-slate-900 h-4 w-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Relevance</span>
+                      <span className="font-mono font-bold">{relevance}</span>
                     </div>
-                    <div className="space-y-1">
-                       <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Relevance</span>
-                          <span className="font-mono font-bold">{relevance}</span>
-                       </div>
-                       <input 
-                        type="range" min="1" max="10" value={relevance} 
-                        onChange={e => setRelevance(Number(e.target.value))} 
-                        className="w-full accent-slate-900 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer" 
-                      />
-                    </div>
+                    <input
+                      type="range" min="1" max="10" value={relevance}
+                      onChange={e => setRelevance(Number(e.target.value))}
+                      className="w-full accent-slate-900 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
                 </div>
               </section>
 
               <section className="space-y-3">
-                 <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                    <ImageIcon size={12} /> Article Image
-                 </label>
-                 <div className="space-y-3">
-                    {imagePreview ? (
-                       <div className="relative group">
-                          <img 
-                             src={imagePreview} 
-                             alt="Article preview" 
-                             className="w-full h-48 object-cover rounded-lg border border-slate-200"
-                          />
-                          <button
-                             type="button"
-                             onClick={handleImageRemove}
-                             className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                             title="Remove image"
-                          >
-                             <X size={16} />
-                          </button>
-                          <button
-                             type="button"
-                             onClick={() => setShowImageModal(true)}
-                             className="absolute top-2 left-2 px-3 py-1.5 bg-white/90 hover:bg-white text-slate-700 text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                             title="Change image"
-                          >
-                             Change
-                          </button>
-                          <div className="mt-2 text-xs text-slate-500 truncate">
-                             {imagePath}
-                          </div>
-                       </div>
-                    ) : (
-                       <button
-                          type="button"
-                          onClick={() => setShowImageModal(true)}
-                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-colors"
-                       >
-                          <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                          <p className="text-xs text-slate-600 font-medium">Add Article Image</p>
-                          <p className="text-xs text-slate-400 mt-1">Click to select or upload</p>
-                       </button>
-                    )}
-                 </div>
+                <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                  <ImageIcon size={12} /> Article Image
+                </label>
+                <div className="space-y-3">
+                  {imagePreview ? (
+                    <div className="relative group">
+                      <img
+                        src={imagePreview}
+                        alt="Article preview"
+                        className="w-full h-48 object-cover rounded-lg border border-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleImageRemove}
+                        className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        title="Remove image"
+                      >
+                        <X size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowImageModal(true)}
+                        className="absolute top-2 left-2 px-3 py-1.5 bg-white/90 hover:bg-white text-slate-700 text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        title="Change image"
+                      >
+                        Change
+                      </button>
+                      <div className="mt-2 text-xs text-slate-500 truncate">
+                        {imagePath}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowImageModal(true)}
+                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-colors"
+                    >
+                      <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                      <p className="text-xs text-slate-600 font-medium">Add Article Image</p>
+                      <p className="text-xs text-slate-400 mt-1">Click to select or upload</p>
+                    </button>
+                  )}
+                </div>
               </section>
 
               <section className="space-y-3">
-                 <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                    <Settings size={12} /> Meta Data
-                 </label>
-                 <div className="space-y-3">
-                    <div>
-                       <span className="text-xs text-slate-500 mb-1 block">Language</span>
-                       <select 
-                          value={languageId} 
-                          onChange={e => handleLanguageIdChange(Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none transition-all"
-                        >
-                          {Object.entries(LANGUAGE_MAP).map(([id, name]) => (
-                            <option key={id} value={id}>
-                              {name}
-                            </option>
-                          ))}
-                        </select>
-                    </div>
-                    <div>
-                       <span className="text-xs text-slate-500 mb-1 block">Read Time (min) <span className="text-red-500">*</span></span>
-                       <input 
-                          type="number" 
-                          min="1"
-                          required
-                          value={readTime} 
-                          onChange={e => handleReadTimeChange(Number(e.target.value))}
-                          className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none transition-all ${
-                            errors.readTime ? 'border-red-300' : 'border-slate-200'
-                          }`}
-                        />
-                       {errors.readTime && <p className="text-xs text-red-500 mt-1">{errors.readTime}</p>}
-                    </div>
-                 </div>
+                <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                  <Settings size={12} /> Meta Data
+                </label>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-xs text-slate-500 mb-1 block">Language</span>
+                    <select
+                      value={languageId}
+                      onChange={e => handleLanguageIdChange(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none transition-all"
+                    >
+                      {Object.entries(LANGUAGE_MAP).map(([id, name]) => (
+                        <option key={id} value={id}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500 mb-1 block">Read Time (min) <span className="text-red-500">*</span></span>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={readTime}
+                      onChange={e => handleReadTimeChange(Number(e.target.value))}
+                      className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none transition-all ${errors.readTime ? 'border-red-300' : 'border-slate-200'
+                        }`}
+                    />
+                    {errors.readTime && <p className="text-xs text-red-500 mt-1">{errors.readTime}</p>}
+                  </div>
+                </div>
               </section>
 
               <section className="space-y-3 pt-4 border-t border-slate-100">
-                 <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                    <Settings size={12} /> Group ID <span className="text-red-500 text-xs normal-case font-normal">*</span>
-                 </label>
-                 <input 
-                    type="number"
-                    min="1"
-                    required
-                    value={selectedGroupId || ''}
-                    onChange={e => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
-                    placeholder="Group ID (required)"
-                    className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none ${
-                      errors.groupId ? 'border-red-300' : 'border-slate-200'
+                <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                  <Settings size={12} /> Group ID {isIntroduction ? <span className="text-xs text-slate-400 font-normal normal-case">(Optional)</span> : <span className="text-red-500 text-xs normal-case font-normal">*</span>}
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  required={!isIntroduction}
+                  value={selectedGroupId || ''}
+                  onChange={e => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
+                  placeholder={isIntroduction ? "Group ID (optional)" : "Group ID (required)"}
+                  className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none ${errors.groupId ? 'border-red-300' : 'border-slate-200'
                     }`}
-                 />
-                 {errors.groupId && <p className="text-xs text-red-500 mt-1">{errors.groupId}</p>}
+                />
+                {errors.groupId && <p className="text-xs text-red-500 mt-1">{errors.groupId}</p>}
               </section>
             </div>
           )}
@@ -1069,323 +1078,322 @@ To fix this:
           {/* --- Tab: Taxonomy (Tags/Topics) --- */}
           {activeTab === "taxonomy" && !isShort && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-               <section className="space-y-3">
-                  <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                     <Tag size={12} /> Tags
-                  </label>
-                  
-                  {/* Tags Input Container with Chips */}
-                  <div className="min-h-[44px] w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200/50 transition-all">
-                     <div className="flex flex-wrap gap-2 items-center">
-                        {/* Display Selected Tags as Chips */}
-                        {selectedTags.map((tag, idx) => (
-                           <span 
-                              key={idx} 
-                              className="px-3 py-1.5 rounded-full text-xs font-medium border bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 flex items-center gap-1.5 transition-colors"
-                           >
-                              {tag}
-                              <button
-                                 type="button"
-                                 onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedTags(selectedTags.filter((_, i) => i !== idx));
-                                 }}
-                                 className="hover:opacity-70 transition-opacity ml-0.5"
-                                 aria-label={`Remove ${tag}`}
-                              >
-                                 <X size={14} strokeWidth={2.5} />
-                              </button>
-                           </span>
-                        ))}
-                        
-                        {/* Input Field */}
-                        <div className="relative flex-1 min-w-[120px]">
-                           <input 
-                              type="text" 
-                              placeholder={selectedTags.length === 0 ? "Type tags and press Enter or comma..." : "Add more tags..."}
-                              value={tagInput}
-                              onChange={e => {
-                                 const value = e.target.value;
-                                 setTagInput(value);
-                                 
-                                 // Handle comma separation
-                                 if (value.includes(',')) {
-                                    const parts = value.split(',').map(s => s.trim()).filter(s => s);
-                                    parts.forEach(part => {
-                                       if (part && !selectedTags.includes(part)) {
-                                          setSelectedTags(prev => [...prev, part]);
-                                       }
-                                    });
-                                    setTagInput("");
-                                    return;
-                                 }
-                                 
-                                 setShowTagSuggestions(true);
-                              }}
-                              onFocus={() => setShowTagSuggestions(true)}
-                              onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
-                              onKeyDown={e => {
-                                 // Enter key to add tag
-                                 if (e.key === "Enter" && tagInput.trim()) {
-                                    e.preventDefault();
-                                    const trimmed = tagInput.trim();
-                                    if (trimmed && !selectedTags.includes(trimmed)) {
-                                       setSelectedTags([...selectedTags, trimmed]);
-                                       setTagInput("");
-                                    }
-                                 }
-                                 // Backspace on empty input removes last tag
-                                 if (e.key === "Backspace" && tagInput === "" && selectedTags.length > 0) {
-                                    setSelectedTags(selectedTags.slice(0, -1));
-                                 }
-                              }}
-                              className="w-full bg-transparent border-none outline-none text-sm text-slate-900 placeholder:text-slate-400"
-                           />
-                           
-                           {/* Suggestions Dropdown */}
-                           {showTagSuggestions && tagInput && (
-                              <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                                 {availableTags
-                                    .filter(tag => 
-                                       tag.name.toLowerCase().includes(tagInput.toLowerCase()) && 
-                                       !selectedTags.includes(tag.name)
-                                    )
-                                    .slice(0, 8)
-                                    .map(tag => (
-                                       <button
-                                          key={tag.id}
-                                          type="button"
-                                          onClick={() => {
-                                             if (!selectedTags.includes(tag.name)) {
-                                                setSelectedTags([...selectedTags, tag.name]);
-                                                setTagInput("");
-                                             }
-                                          }}
-                                          className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-sm text-slate-700 transition-colors border-b border-slate-100 last:border-b-0"
-                                       >
-                                          {tag.name}
-                                       </button>
-                                    ))}
-                                 {availableTags.filter(tag => 
-                                    tag.name.toLowerCase().includes(tagInput.toLowerCase()) && 
-                                    !selectedTags.includes(tag.name)
-                                 ).length === 0 && tagInput.trim() && (
-                                    <div className="px-4 py-2.5 text-sm text-slate-500">
-                                       Press Enter to add "{tagInput.trim()}"
-                                    </div>
-                                 )}
-                              </div>
-                           )}
-                        </div>
-                     </div>
-                  </div>
-                  
-                  {/* Existing Tags Quick Add */}
-                  {availableTags.length > 0 && (
-                     <div className="text-xs">
-                        <p className="text-slate-500 font-medium mb-2">Quick add:</p>
-                        <div className="flex flex-wrap gap-1.5">
-                           {availableTags
-                              .filter(tag => !selectedTags.includes(tag.name))
-                              .slice(0, 12)
-                              .map(tag => (
-                                 <button
-                                    key={tag.id}
-                                    type="button"
-                                    onClick={() => {
-                                       if (!selectedTags.includes(tag.name)) {
-                                          setSelectedTags([...selectedTags, tag.name]);
-                                       }
-                                    }}
-                                    className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-xs rounded-md border border-slate-200 hover:border-slate-300 transition-colors"
-                                 >
-                                    + {tag.name}
-                                 </button>
-                              ))}
-                        </div>
-                     </div>
-                  )}
-               </section>
+              <section className="space-y-3">
+                <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                  <Tag size={12} /> Tags
+                </label>
 
-               <section className="space-y-3">
-                  <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                     <Hash size={12} /> Topics & Scores
-                  </label>
-                  <div className="relative">
-                     <input 
-                        type="text" 
-                        placeholder="Type topic name or select from existing..."
-                        value={topicInput}
+                {/* Tags Input Container with Chips */}
+                <div className="min-h-[44px] w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200/50 transition-all">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {/* Display Selected Tags as Chips */}
+                    {selectedTags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 rounded-full text-xs font-medium border bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 flex items-center gap-1.5 transition-colors"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTags(selectedTags.filter((_, i) => i !== idx));
+                          }}
+                          className="hover:opacity-70 transition-opacity ml-0.5"
+                          aria-label={`Remove ${tag}`}
+                        >
+                          <X size={14} strokeWidth={2.5} />
+                        </button>
+                      </span>
+                    ))}
+
+                    {/* Input Field */}
+                    <div className="relative flex-1 min-w-[120px]">
+                      <input
+                        type="text"
+                        placeholder={selectedTags.length === 0 ? "Type tags and press Enter or comma..." : "Add more tags..."}
+                        value={tagInput}
                         onChange={e => {
-                           setTopicInput(e.target.value);
-                           setShowTopicSuggestions(true);
+                          const value = e.target.value;
+                          setTagInput(value);
+
+                          // Handle comma separation
+                          if (value.includes(',')) {
+                            const parts = value.split(',').map(s => s.trim()).filter(s => s);
+                            parts.forEach(part => {
+                              if (part && !selectedTags.includes(part)) {
+                                setSelectedTags(prev => [...prev, part]);
+                              }
+                            });
+                            setTagInput("");
+                            return;
+                          }
+
+                          setShowTagSuggestions(true);
                         }}
-                        onFocus={() => setShowTopicSuggestions(true)}
-                        onBlur={() => setTimeout(() => setShowTopicSuggestions(false), 200)}
+                        onFocus={() => setShowTagSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
                         onKeyDown={e => {
-                           if (e.key === "Enter" && topicInput.trim() && !selectedTopics.includes(topicInput.trim())) {
-                              e.preventDefault();
-                              setSelectedTopics([...selectedTopics, topicInput.trim()]);
-                              setTopicRelevancyScores({...topicRelevancyScores, [topicInput.trim()]: 5});
-                              setTopicInput("");
-                           }
+                          // Enter key to add tag
+                          if (e.key === "Enter" && tagInput.trim()) {
+                            e.preventDefault();
+                            const trimmed = tagInput.trim();
+                            if (trimmed && !selectedTags.includes(trimmed)) {
+                              setSelectedTags([...selectedTags, trimmed]);
+                              setTagInput("");
+                            }
+                          }
+                          // Backspace on empty input removes last tag
+                          if (e.key === "Backspace" && tagInput === "" && selectedTags.length > 0) {
+                            setSelectedTags(selectedTags.slice(0, -1));
+                          }
                         }}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
-                     />
-                     {showTopicSuggestions && topicInput && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded shadow-lg max-h-40 overflow-y-auto">
-                           {availableTopics
-                              .filter(topic => topic.name.toLowerCase().includes(topicInput.toLowerCase()) && !selectedTopics.includes(topic.name))
-                              .map(topic => (
-                                 <button
-                                    key={topic.id}
-                                    type="button"
-                                    onClick={() => {
-                                       if (!selectedTopics.includes(topic.name)) {
-                                          setSelectedTopics([...selectedTopics, topic.name]);
-                                          setTopicRelevancyScores({...topicRelevancyScores, [topic.name]: 5});
-                                          setTopicInput("");
-                                       }
-                                    }}
-                                    className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm"
-                                 >
-                                    {topic.name}
-                                 </button>
-                              ))}
+                        className="w-full bg-transparent border-none outline-none text-sm text-slate-900 placeholder:text-slate-400"
+                      />
+
+                      {/* Suggestions Dropdown */}
+                      {showTagSuggestions && tagInput && (
+                        <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                          {availableTags
+                            .filter(tag =>
+                              tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+                              !selectedTags.includes(tag.name)
+                            )
+                            .slice(0, 8)
+                            .map(tag => (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => {
+                                  if (!selectedTags.includes(tag.name)) {
+                                    setSelectedTags([...selectedTags, tag.name]);
+                                    setTagInput("");
+                                  }
+                                }}
+                                className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-sm text-slate-700 transition-colors border-b border-slate-100 last:border-b-0"
+                              >
+                                {tag.name}
+                              </button>
+                            ))}
+                          {availableTags.filter(tag =>
+                            tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+                            !selectedTags.includes(tag.name)
+                          ).length === 0 && tagInput.trim() && (
+                              <div className="px-4 py-2.5 text-sm text-slate-500">
+                                Press Enter to add "{tagInput.trim()}"
+                              </div>
+                            )}
                         </div>
-                     )}
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-2 mt-2">
-                     {selectedTopics.map((topicName, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-xs p-2 bg-slate-50 rounded border border-slate-100">
-                           <span className="font-semibold text-slate-600 flex-1">{topicName}</span>
-                           <input 
-                              type="range" min="1" max="10" 
-                              value={topicRelevancyScores[topicName] || 5} 
-                              onChange={e => setTopicRelevancyScores({...topicRelevancyScores, [topicName]: Number(e.target.value)})}
-                              className="flex-1 accent-slate-600 h-1 bg-slate-200 rounded" 
-                           />
-                           <span className="font-mono text-slate-900 w-6 text-right">{topicRelevancyScores[topicName] || 5}</span>
-                           <button
-                              type="button"
-                              onClick={() => {
-                                 setSelectedTopics(selectedTopics.filter((_, i) => i !== idx));
-                                 const newScores = {...topicRelevancyScores};
-                                 delete newScores[topicName];
-                                 setTopicRelevancyScores(newScores);
-                              }}
-                              className="text-slate-400 hover:text-red-500"
-                           >
-                              <X size={12} />
-                           </button>
-                        </div>
-                     ))}
+                </div>
+
+                {/* Existing Tags Quick Add */}
+                {availableTags.length > 0 && (
+                  <div className="text-xs">
+                    <p className="text-slate-500 font-medium mb-2">Quick add:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableTags
+                        .filter(tag => !selectedTags.includes(tag.name))
+                        .slice(0, 12)
+                        .map(tag => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => {
+                              if (!selectedTags.includes(tag.name)) {
+                                setSelectedTags([...selectedTags, tag.name]);
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-xs rounded-md border border-slate-200 hover:border-slate-300 transition-colors"
+                          >
+                            + {tag.name}
+                          </button>
+                        ))}
+                    </div>
                   </div>
-                  {availableTopics.length > 0 && (
-                     <div className="text-xs text-slate-500">
-                        <p className="font-medium mb-1">Existing topics:</p>
-                        <div className="flex flex-wrap gap-1">
-                           {availableTopics
-                              .filter(topic => !selectedTopics.includes(topic.name))
-                              .slice(0, 10)
-                              .map(topic => (
-                                 <button
-                                    key={topic.id}
-                                    type="button"
-                                    onClick={() => {
-                                       if (!selectedTopics.includes(topic.name)) {
-                                          setSelectedTopics([...selectedTopics, topic.name]);
-                                          setTopicRelevancyScores({...topicRelevancyScores, [topic.name]: 5});
-                                       }
-                                    }}
-                                    className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs rounded border border-slate-200"
-                                 >
-                                    {topic.name}
-                                 </button>
-                              ))}
-                        </div>
-                     </div>
+                )}
+              </section>
+
+              <section className="space-y-3">
+                <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                  <Hash size={12} /> Topics & Scores
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Type topic name or select from existing..."
+                    value={topicInput}
+                    onChange={e => {
+                      setTopicInput(e.target.value);
+                      setShowTopicSuggestions(true);
+                    }}
+                    onFocus={() => setShowTopicSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowTopicSuggestions(false), 200)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && topicInput.trim() && !selectedTopics.includes(topicInput.trim())) {
+                        e.preventDefault();
+                        setSelectedTopics([...selectedTopics, topicInput.trim()]);
+                        setTopicRelevancyScores({ ...topicRelevancyScores, [topicInput.trim()]: 5 });
+                        setTopicInput("");
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
+                  />
+                  {showTopicSuggestions && topicInput && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded shadow-lg max-h-40 overflow-y-auto">
+                      {availableTopics
+                        .filter(topic => topic.name.toLowerCase().includes(topicInput.toLowerCase()) && !selectedTopics.includes(topic.name))
+                        .map(topic => (
+                          <button
+                            key={topic.id}
+                            type="button"
+                            onClick={() => {
+                              if (!selectedTopics.includes(topic.name)) {
+                                setSelectedTopics([...selectedTopics, topic.name]);
+                                setTopicRelevancyScores({ ...topicRelevancyScores, [topic.name]: 5 });
+                                setTopicInput("");
+                              }
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm"
+                          >
+                            {topic.name}
+                          </button>
+                        ))}
+                    </div>
                   )}
-               </section>
+                </div>
+                <div className="space-y-2 mt-2">
+                  {selectedTopics.map((topicName, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs p-2 bg-slate-50 rounded border border-slate-100">
+                      <span className="font-semibold text-slate-600 flex-1">{topicName}</span>
+                      <input
+                        type="range" min="1" max="10"
+                        value={topicRelevancyScores[topicName] || 5}
+                        onChange={e => setTopicRelevancyScores({ ...topicRelevancyScores, [topicName]: Number(e.target.value) })}
+                        className="flex-1 accent-slate-600 h-1 bg-slate-200 rounded"
+                      />
+                      <span className="font-mono text-slate-900 w-6 text-right">{topicRelevancyScores[topicName] || 5}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTopics(selectedTopics.filter((_, i) => i !== idx));
+                          const newScores = { ...topicRelevancyScores };
+                          delete newScores[topicName];
+                          setTopicRelevancyScores(newScores);
+                        }}
+                        className="text-slate-400 hover:text-red-500"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {availableTopics.length > 0 && (
+                  <div className="text-xs text-slate-500">
+                    <p className="font-medium mb-1">Existing topics:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {availableTopics
+                        .filter(topic => !selectedTopics.includes(topic.name))
+                        .slice(0, 10)
+                        .map(topic => (
+                          <button
+                            key={topic.id}
+                            type="button"
+                            onClick={() => {
+                              if (!selectedTopics.includes(topic.name)) {
+                                setSelectedTopics([...selectedTopics, topic.name]);
+                                setTopicRelevancyScores({ ...topicRelevancyScores, [topic.name]: 5 });
+                              }
+                            }}
+                            className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs rounded border border-slate-200"
+                          >
+                            {topic.name}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </section>
             </div>
           )}
 
           {/* --- Tab: References --- */}
           {activeTab === "refs" && (
-             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-               <section className="space-y-3">
-                  <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                     <Globe size={12} /> Sources
-                     {isShort && <span className="text-red-500 text-xs normal-case font-normal">*</span>}
-                  </label>
-                  <div className="space-y-3">
-                     <input 
-                        type="text" placeholder={isShort ? "Source Name (required)" : "Source Name"}
-                        value={source} onChange={e => handleSourceChange(e.target.value)}
-                        className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none ${
-                          errors.source ? 'border-red-300' : 'border-slate-200'
-                        }`}
-                     />
-                     {errors.source && <p className="text-xs text-red-500 mt-1">{errors.source}</p>}
-                     <input 
-                        type="text" placeholder="Primary Reference"
-                        value={primaryReference} onChange={e => handlePrimaryReferenceChange(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
-                     />
-                  </div>
-               </section>
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <section className="space-y-3">
+                <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                  <Globe size={12} /> Sources
+                  {isShort && <span className="text-red-500 text-xs normal-case font-normal">*</span>}
+                </label>
+                <div className="space-y-3">
+                  <input
+                    type="text" placeholder={isShort && !isIntroduction ? "Source Name (required)" : "Source Name"}
+                    value={source} onChange={e => handleSourceChange(e.target.value)}
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none ${errors.source ? 'border-red-300' : 'border-slate-200'
+                      }`}
+                  />
+                  {errors.source && <p className="text-xs text-red-500 mt-1">{errors.source}</p>}
+                  <input
+                    type="text" placeholder="Primary Reference"
+                    value={primaryReference} onChange={e => handlePrimaryReferenceChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
+                  />
+                </div>
+              </section>
 
-               <section className="space-y-3">
-                  <div className="flex items-center justify-between">
-                     <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                        <LinkIcon size={12} /> Secondary Refs
-                     </label>
-                     <button onClick={addSecondaryReference} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors">
-                        + Add
-                     </button>
-                  </div>
-                  <div className="space-y-2">
-                     {secondaryReferences.map((ref, i) => (
-                        <div key={i} className="flex gap-1">
-                           <input 
-                              value={ref}
-                              onChange={e => updateSecondaryReference(i, e.target.value)}
-                              placeholder="Ref..."
-                              className="flex-1 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:border-slate-400 outline-none"
-                           />
-                           <button onClick={() => removeSecondaryReference(i)} className="px-2 text-slate-400 hover:text-red-500">
-                              <X size={12} />
-                           </button>
-                        </div>
-                     ))}
-                     {secondaryReferences.length === 0 && <p className="text-xs text-slate-400 italic">No secondary references</p>}
-                  </div>
-               </section>
-
-               <section className="space-y-3 pt-4 border-t border-slate-100">
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                     <BookOpen size={12} /> Islamic Terms
+                    <LinkIcon size={12} /> Secondary Refs
                   </label>
-                  <div className="space-y-3">
-                     <input 
-                        type="text" placeholder="Prophetic Wisdom Term"
-                        value={propheticWisdomTerm} onChange={e => handlePropheticWisdomTermChange(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
-                     />
-                     <input 
-                        type="text" placeholder="Quran Term"
-                        value={quranTerm} onChange={e => handleQuranTermChange(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
-                     />
-                      <textarea 
-                        placeholder="Hadith Reference"
-                        value={hadithReference} onChange={e => handleHadithReferenceChange(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none resize-none"
-                        rows={3}
-                     />
-                  </div>
-               </section>
-             </div>
+                  <button onClick={addSecondaryReference} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors">
+                    + Add
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {secondaryReferences.map((ref, i) => (
+                    <div key={i} className="flex gap-1">
+                      <input
+                        value={ref}
+                        onChange={e => updateSecondaryReference(i, e.target.value)}
+                        placeholder="Ref..."
+                        className="flex-1 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:border-slate-400 outline-none"
+                      />
+                      <button onClick={() => removeSecondaryReference(i)} className="px-2 text-slate-400 hover:text-red-500">
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {secondaryReferences.length === 0 && <p className="text-xs text-slate-400 italic">No secondary references</p>}
+                </div>
+              </section>
+
+              <section className="space-y-3 pt-4 border-t border-slate-100">
+                <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                  <BookOpen size={12} /> Islamic Terms
+                </label>
+                <div className="space-y-3">
+                  <input
+                    type="text" placeholder="Prophetic Wisdom Term"
+                    value={propheticWisdomTerm} onChange={e => handlePropheticWisdomTermChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
+                  />
+                  <input
+                    type="text" placeholder="Quran Term"
+                    value={quranTerm} onChange={e => handleQuranTermChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
+                  />
+                  <textarea
+                    placeholder="Hadith Reference"
+                    value={hadithReference} onChange={e => handleHadithReferenceChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none resize-none"
+                    rows={3}
+                  />
+                </div>
+              </section>
+            </div>
           )}
 
         </div>
@@ -1403,185 +1411,184 @@ To fix this:
           {/* Modal content with even higher z-index */}
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-200">
-              <h2 className="text-lg font-bold text-slate-900">Select Article Image</h2>
-              <button
-                onClick={() => {
-                  setShowImageModal(false);
-                  setImageModalMode(null);
-                  setExistingImages([]);
-                }}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X size={20} className="text-slate-500" />
-              </button>
-            </div>
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                <h2 className="text-lg font-bold text-slate-900">Select Article Image</h2>
+                <button
+                  onClick={() => {
+                    setShowImageModal(false);
+                    setImageModalMode(null);
+                    setExistingImages([]);
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-slate-500" />
+                </button>
+              </div>
 
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {/* Error/Success Status Display */}
-              {saveStatus.type && saveStatus.message && (
-                <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
-                  saveStatus.type === "error" 
-                    ? "bg-red-50 border border-red-200 text-red-800" 
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Error/Success Status Display */}
+                {saveStatus.type && saveStatus.message && (
+                  <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${saveStatus.type === "error"
+                    ? "bg-red-50 border border-red-200 text-red-800"
                     : "bg-green-50 border border-green-200 text-green-800"
-                }`}>
-                  {saveStatus.type === "error" ? (
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                  )}
-                  <p className="text-sm font-medium">{saveStatus.message}</p>
-                </div>
-              )}
-              
-              {!imageModalMode ? (
-                // Initial choice screen
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={async () => {
-                      setImageModalMode("select");
-                      await loadExistingImages();
-                    }}
-                    className="flex flex-col items-center justify-center p-8 border-2 border-slate-200 rounded-xl hover:border-slate-400 hover:bg-slate-50 transition-all group"
-                  >
-                    <ImageIcon className="w-12 h-12 text-slate-400 group-hover:text-slate-600 mb-3" />
-                    <h3 className="text-base font-semibold text-slate-900 mb-1">Use from existing ones</h3>
-                    <p className="text-xs text-slate-500 text-center">Browse and select from previously uploaded images</p>
-                  </button>
-                  <button
-                    onClick={() => setImageModalMode("upload")}
-                    className="flex flex-col items-center justify-center p-8 border-2 border-slate-200 rounded-xl hover:border-slate-400 hover:bg-slate-50 transition-all group"
-                  >
-                    <Upload className="w-12 h-12 text-slate-400 group-hover:text-slate-600 mb-3" />
-                    <h3 className="text-base font-semibold text-slate-900 mb-1">Upload from device</h3>
-                    <p className="text-xs text-slate-500 text-center">Upload a new image from your computer</p>
-                  </button>
-                </div>
-              ) : imageModalMode === "select" ? (
-                // Existing images grid
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-slate-900">Select an Image</h3>
-                    <button
-                      onClick={() => setImageModalMode(null)}
-                      className="text-xs text-slate-500 hover:text-slate-700"
-                    >
-                      ← Back
-                    </button>
+                    }`}>
+                    {saveStatus.type === "error" ? (
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                    )}
+                    <p className="text-sm font-medium">{saveStatus.message}</p>
                   </div>
-                  {loadingImages ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
-                    </div>
-                  ) : existingImages.length === 0 ? (
-                    <div className="text-center py-12">
-                      {saveStatus.type === "error" ? (
-                        <div className="space-y-3 max-w-md mx-auto">
-                          <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
-                          <p className="text-sm font-medium text-red-600">{saveStatus.message}</p>
-                          {saveStatus.message?.includes("bucket") && (
-                            <div className="text-left text-xs text-slate-600 bg-slate-50 p-3 rounded border border-slate-200 mt-3">
-                              <p className="font-semibold mb-2">Quick Setup:</p>
-                              <ol className="list-decimal list-inside space-y-1">
-                                <li>Go to Supabase Dashboard → Storage</li>
-                                <li>Click "New bucket"</li>
-                                <li>Name: <code className="bg-slate-200 px-1 rounded">Images</code></li>
-                                <li>Set to Public or configure policies</li>
-                                <li>Refresh and try again</li>
-                              </ol>
-                            </div>
-                          )}
-                          <button
-                            onClick={() => setImageModalMode("upload")}
-                            className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                          >
-                            Try uploading a new image
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-sm text-slate-400">No images found in Article_Images folder</p>
-                          <p className="text-xs text-slate-400 mt-1">Upload your first image to get started</p>
-                          <button
-                            onClick={() => setImageModalMode("upload")}
-                            className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                          >
-                            Upload a new image instead
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-4">
-                      {existingImages.map((image, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSelectExistingImage(image.path)}
-                          className="relative group aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-500 transition-all"
-                        >
-                          <img
-                            src={image.url}
-                            alt={image.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EFailed to load%3C/text%3E%3C/svg%3E';
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 bg-white px-3 py-1.5 rounded-md text-xs font-medium text-slate-900">
-                              Select
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Upload mode
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-slate-900">Upload New Image</h3>
+                )}
+
+                {!imageModalMode ? (
+                  // Initial choice screen
+                  <div className="grid grid-cols-2 gap-4">
                     <button
-                      onClick={() => setImageModalMode(null)}
-                      className="text-xs text-slate-500 hover:text-slate-700"
-                    >
-                      ← Back
-                    </button>
-                  </div>
-                  <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      {isUploadingImage ? (
-                        <>
-                          <Loader2 className="w-10 h-10 text-slate-400 animate-spin mb-3" />
-                          <p className="text-sm text-slate-600 font-medium">Uploading...</p>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-10 h-10 text-slate-400 mb-3" />
-                          <p className="text-sm text-slate-600 font-medium">Click to select image</p>
-                          <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP up to 10MB</p>
-                        </>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleImageUpload(file);
-                        }
+                      onClick={async () => {
+                        setImageModalMode("select");
+                        await loadExistingImages();
                       }}
-                      disabled={isUploadingImage}
-                    />
-                  </label>
-                </div>
-              )}
-            </div>
+                      className="flex flex-col items-center justify-center p-8 border-2 border-slate-200 rounded-xl hover:border-slate-400 hover:bg-slate-50 transition-all group"
+                    >
+                      <ImageIcon className="w-12 h-12 text-slate-400 group-hover:text-slate-600 mb-3" />
+                      <h3 className="text-base font-semibold text-slate-900 mb-1">Use from existing ones</h3>
+                      <p className="text-xs text-slate-500 text-center">Browse and select from previously uploaded images</p>
+                    </button>
+                    <button
+                      onClick={() => setImageModalMode("upload")}
+                      className="flex flex-col items-center justify-center p-8 border-2 border-slate-200 rounded-xl hover:border-slate-400 hover:bg-slate-50 transition-all group"
+                    >
+                      <Upload className="w-12 h-12 text-slate-400 group-hover:text-slate-600 mb-3" />
+                      <h3 className="text-base font-semibold text-slate-900 mb-1">Upload from device</h3>
+                      <p className="text-xs text-slate-500 text-center">Upload a new image from your computer</p>
+                    </button>
+                  </div>
+                ) : imageModalMode === "select" ? (
+                  // Existing images grid
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-semibold text-slate-900">Select an Image</h3>
+                      <button
+                        onClick={() => setImageModalMode(null)}
+                        className="text-xs text-slate-500 hover:text-slate-700"
+                      >
+                        ← Back
+                      </button>
+                    </div>
+                    {loadingImages ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+                      </div>
+                    ) : existingImages.length === 0 ? (
+                      <div className="text-center py-12">
+                        {saveStatus.type === "error" ? (
+                          <div className="space-y-3 max-w-md mx-auto">
+                            <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
+                            <p className="text-sm font-medium text-red-600">{saveStatus.message}</p>
+                            {saveStatus.message?.includes("bucket") && (
+                              <div className="text-left text-xs text-slate-600 bg-slate-50 p-3 rounded border border-slate-200 mt-3">
+                                <p className="font-semibold mb-2">Quick Setup:</p>
+                                <ol className="list-decimal list-inside space-y-1">
+                                  <li>Go to Supabase Dashboard → Storage</li>
+                                  <li>Click "New bucket"</li>
+                                  <li>Name: <code className="bg-slate-200 px-1 rounded">Images</code></li>
+                                  <li>Set to Public or configure policies</li>
+                                  <li>Refresh and try again</li>
+                                </ol>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => setImageModalMode("upload")}
+                              className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                              Try uploading a new image
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm text-slate-400">No images found in Article_Images folder</p>
+                            <p className="text-xs text-slate-400 mt-1">Upload your first image to get started</p>
+                            <button
+                              onClick={() => setImageModalMode("upload")}
+                              className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                              Upload a new image instead
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-4">
+                        {existingImages.map((image, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSelectExistingImage(image.path)}
+                            className="relative group aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-500 transition-all"
+                          >
+                            <img
+                              src={image.url}
+                              alt={image.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EFailed to load%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                              <div className="opacity-0 group-hover:opacity-100 bg-white px-3 py-1.5 rounded-md text-xs font-medium text-slate-900">
+                                Select
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Upload mode
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-semibold text-slate-900">Upload New Image</h3>
+                      <button
+                        onClick={() => setImageModalMode(null)}
+                        className="text-xs text-slate-500 hover:text-slate-700"
+                      >
+                        ← Back
+                      </button>
+                    </div>
+                    <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {isUploadingImage ? (
+                          <>
+                            <Loader2 className="w-10 h-10 text-slate-400 animate-spin mb-3" />
+                            <p className="text-sm text-slate-600 font-medium">Uploading...</p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-10 h-10 text-slate-400 mb-3" />
+                            <p className="text-sm text-slate-600 font-medium">Click to select image</p>
+                            <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP up to 10MB</p>
+                          </>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload(file);
+                          }
+                        }}
+                        disabled={isUploadingImage}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </>,
