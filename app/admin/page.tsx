@@ -4,7 +4,7 @@ import Link from "next/link";
 import { 
   FileText, Video, Users, TrendingUp, 
   ArrowUpRight, Plus, Clock, Activity, 
-  Search, Bell, ChevronRight, PlayCircle
+  Search, Bell, ChevronRight, PlayCircle, MessageSquare
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -68,6 +68,26 @@ export default function AdminDashboard() {
                     </Link>
                     <Link href="/admin/media" className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors">
                       Library
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feedback Card */}
+              <div className="group relative bg-white rounded-3xl p-1 shadow-sm border border-slate-200 hover:border-amber-300 transition-all hover:shadow-xl hover:shadow-amber-900/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                <div className="relative p-7 h-full flex flex-col">
+                  <div className="w-12 h-12 bg-amber-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-600/20 mb-6 group-hover:-translate-y-1 transition-transform">
+                    <MessageSquare size={24} />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">Feedback</h3>
+                  <p className="text-sm text-slate-500 mt-2 mb-8 leading-relaxed">
+                    View and manage bug reports and feature requests from users.
+                  </p>
+                  
+                  <div className="mt-auto">
+                    <Link href="/admin/feedback" className="flex items-center justify-center gap-2 py-2.5 px-4 w-full bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors">
+                      <MessageSquare size={16} /> View list
                     </Link>
                   </div>
                 </div>
