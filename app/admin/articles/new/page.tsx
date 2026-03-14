@@ -165,18 +165,24 @@ export default function NewArticlePage() {
         }
       }
 
-      // Insert group link (required unless introduction)
-      if (!articleData.group_id && !articleData.is_introduction) {
-        throw new Error("Group ID is required");
+      // Insert group links (required unless introduction).
+      const groupIds: number[] = Array.isArray(articleData.group_ids)
+        ? articleData.group_ids
+        : (articleData.group_id ? [articleData.group_id] : []);
+
+      if (!articleData.is_introduction && (!groupIds || groupIds.length === 0)) {
+        throw new Error("At least one Group ID (derived from references) is required");
       }
 
-      if (articleData.group_id) {
+      if (groupIds && groupIds.length > 0) {
+        const groupLinks = groupIds.map((groupId: number) => ({
+          article_id: article.id,
+          group_id: groupId,
+        }));
+
         const { error: groupLinkError } = await client
           .from("article_group_links")
-          .insert([{
-            article_id: article.id,
-            group_id: articleData.group_id,
-          }]);
+          .insert(groupLinks);
 
         if (groupLinkError) throw groupLinkError;
       }

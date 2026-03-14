@@ -1,7 +1,7 @@
 //api/create
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { db } from "../../lib/supabase";
+import { db } from "../../../apply-quran/app/lib/supabase";
 
 type ShortLinkType = "commentary" | "article" | "articleShort";
 

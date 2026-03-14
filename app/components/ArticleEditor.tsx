@@ -6,7 +6,7 @@ import {
   Plus, GripVertical, Trash2, ChevronUp, ChevronDown, Save, Eye,
   Type, Heading, FileText, Quote, BookOpen, Tag, Settings,
   Layout, Globe, Hash, Link as LinkIcon, AlertCircle, CheckCircle2,
-  MoreVertical, X, Image as ImageIcon, Upload, Loader2, Menu
+  MoreVertical, X, Image as ImageIcon, Upload, Loader2, Menu, Italic
 } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase/client";
 
@@ -138,6 +138,8 @@ export default function ArticleEditor({
   }, []);
   // --- State Management ---
   const blockRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  const lastFocusedBlockIndex = useRef<number | null>(null);
+  const nextFocusBlockIndex = useRef<number | null>(null);
   const [internalTitle, setInternalTitle] = useState(propTitle ?? "");
   const [internalExcerpt, setInternalExcerpt] = useState(propExcerpt ?? "");
   const [internalBlocks, setInternalBlocks] = useState<ContentBlock[]>(
@@ -577,6 +579,119 @@ To fix this:
   };
   const removeSecondaryReference = (index: number) => setInternalSecondaryReferences(internalSecondaryReferences.filter((_, i) => i !== index));
 
+  // --- Group resolution from Quran references ---
+  const [derivedGroupIds, setDerivedGroupIds] = useState<number[]>(initialGroupId ? [initialGroupId] : []);
+  const [normalizedGroupIds, setNormalizedGroupIds] = useState<number[]>([]);
+  const [groupResolutionMessage, setGroupResolutionMessage] = useState<string | null>(null);
+
+  const parseQuranRef = (ref: string): { surahId: number; startAyah: number; endAyah: number } | null => {
+    const trimmed = ref.trim();
+    if (!trimmed) return null;
+    // Support "chapter:ayah" and "chapter:start-end"
+    const rangeMatch = trimmed.match(/^(\d+)\s*:\s*(\d+)\s*-\s*(\d+)$/);
+    const singleMatch = trimmed.match(/^(\d+)\s*:\s*(\d+)$/);
+
+    if (rangeMatch) {
+      const surahId = Number(rangeMatch[1]);
+      const startAyah = Number(rangeMatch[2]);
+      const endAyah = Number(rangeMatch[3]);
+      if (!Number.isFinite(surahId) || !Number.isFinite(startAyah) || !Number.isFinite(endAyah)) return null;
+      const normalizedStart = Math.min(startAyah, endAyah);
+      const normalizedEnd = Math.max(startAyah, endAyah);
+      return { surahId, startAyah: normalizedStart, endAyah: normalizedEnd };
+    }
+
+    if (singleMatch) {
+      const surahId = Number(singleMatch[1]);
+      const ayah = Number(singleMatch[2]);
+      if (!Number.isFinite(surahId) || !Number.isFinite(ayah)) return null;
+      return { surahId, startAyah: ayah, endAyah: ayah };
+    }
+
+    return null;
+  };
+
+  const normalizeGroupId = (value: number): number => {
+    if (value <= 0) return value;
+    const mod = value % 1600;
+    return mod === 0 ? 1600 : mod;
+  };
+
+  const resolveGroupsFromRefs = async () => {
+    const allRefs: string[] = [];
+    if (primaryReference?.trim()) allRefs.push(primaryReference.trim());
+    secondaryReferences.forEach(ref => {
+      if (ref?.trim()) allRefs.push(ref.trim());
+    });
+
+    const parsed = allRefs
+      .map(parseQuranRef)
+      .filter((p): p is { surahId: number; startAyah: number; endAyah: number } => !!p);
+
+    if (parsed.length === 0) {
+      setDerivedGroupIds([]);
+      setNormalizedGroupIds([]);
+      setGroupResolutionMessage(null);
+      return;
+    }
+
+    try {
+      setGroupResolutionMessage("Resolving group IDs from references...");
+      const client = getSupabaseClient();
+      const collected: number[] = [];
+      const normalizedCollected: number[] = [];
+
+      for (const { surahId, startAyah, endAyah } of parsed) {
+        let query = client
+          .from("groups")
+          .select("id, global_group_id, surah_id, start_ayah, end_ayah, language_code")
+          .eq("surah_id", surahId)
+          .lte("start_ayah", startAyah)
+          .gte("end_ayah", endAyah);
+
+        const { data, error } = await query.limit(10);
+        if (error) {
+          console.error("Error resolving groups for reference", { surahId, startAyah, endAyah, error });
+          continue;
+        }
+        (data || []).forEach((g: any) => {
+          const id: number | undefined =
+            typeof g.id === "number" ? g.id : undefined;
+          if (id && !collected.includes(id)) {
+            collected.push(id);
+          }
+          if (typeof g.global_group_id === "number") {
+            const normalized = normalizeGroupId(g.global_group_id);
+            if (!normalizedCollected.includes(normalized)) {
+              normalizedCollected.push(normalized);
+            }
+          }
+        });
+      }
+
+      setDerivedGroupIds(collected);
+      setNormalizedGroupIds(normalizedCollected);
+
+      if (collected.length > 0) {
+        // Prefer keeping an existing manual selection if it matches one of the resolved IDs
+        setSelectedGroupId(prev => {
+          if (prev && collected.includes(prev)) return prev;
+          return collected[0];
+        });
+        setGroupResolutionMessage(
+          normalizedCollected.length > 0
+            ? `Resolved group IDs from refs: ${normalizedCollected.join(", ")}`
+            : "Resolved group IDs from references."
+        );
+      } else {
+        setGroupResolutionMessage("No matching groups found for the given references.");
+      }
+    } catch (error) {
+      console.error("Error resolving groups from references:", error);
+      setGroupResolutionMessage("Could not resolve group IDs from references.");
+    }
+  };
+
   // --- UI State ---
   const [activeTab, setActiveTab] = useState<"general" | "taxonomy" | "refs">("general");
   const [showSidebar, setShowSidebar] = useState(false);
@@ -604,8 +719,14 @@ To fix this:
     // Read time is always required
     if (!readTime || readTime < 1) newErrors.readTime = "Read time is required (minimum 1 minute)";
 
-    // Group ID is required unless it's an introduction article
-    if (!isIntroduction && (!selectedGroupId || selectedGroupId < 1)) newErrors.groupId = "Group ID is required";
+    // Group ID is required unless it's an introduction article.
+    // Prefer normalized group IDs from references; fall back to manual group ID (also normalized).
+    const effectiveGroupIds = normalizedGroupIds.length > 0
+      ? normalizedGroupIds
+      : (selectedGroupId && selectedGroupId > 0 ? [normalizeGroupId(selectedGroupId)] : []);
+    if (!isIntroduction && effectiveGroupIds.length === 0) {
+      newErrors.groupId = "At least one Group ID (derived from references or manual) is required";
+    }
 
     // For short articles: only require title, source, and at least one block
     if (isShort) {
@@ -639,6 +760,11 @@ To fix this:
 
     setIsSaving(true);
     try {
+      const effectiveGroupIds = normalizedGroupIds.length > 0
+        ? normalizedGroupIds
+        : (selectedGroupId ? [normalizeGroupId(selectedGroupId)] : []);
+      const primaryGroupId = effectiveGroupIds.length > 0 ? effectiveGroupIds[0] : null;
+
       const articleData = {
         title: title.trim(),
         excerpt: isShort ? null : (excerpt.trim() || null), // Allow null if empty
@@ -656,7 +782,8 @@ To fix this:
         source: source.trim() || null,
         tags: isShort ? [] : selectedTags, // No tags for short articles
         topics: isShort ? [] : selectedTopics.map(name => ({ topic_name: name, relevancy_score: topicRelevancyScores[name] || 5 })), // No topics for short articles
-        group_id: selectedGroupId,
+        group_id: primaryGroupId,
+        group_ids: effectiveGroupIds,
         blocks: blocks.map((b, i) => ({ type: b.type, text_content: b.text_content.trim(), block_order: i })),
         articleId,
       };
@@ -673,7 +800,30 @@ To fix this:
   };
 
   // --- Block Manipulation ---
+  const updateBlockType = (index: number, type: ContentBlock["type"]) => {
+    const updated = blocks.map((b, i) =>
+      i === index ? ({ ...b, type } as ContentBlock) : b
+    );
+    setBlocks(updated);
+    setActiveBlockIndex(index);
+    lastFocusedBlockIndex.current = index;
+    requestAnimationFrame(() => {
+      const el = blockRefs.current[index];
+      if (el) {
+        el.focus();
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
+      }
+    });
+  };
+
   const addBlock = (type: ContentBlock["type"]) => {
+    const focused = lastFocusedBlockIndex.current;
+    if (focused !== null && focused >= 0 && focused < blocks.length) {
+      updateBlockType(focused, type);
+      return;
+    }
+
     const newIndex = blocks.length;
     const newBlock: ContentBlock = { type, text_content: "", block_order: newIndex };
     setBlocks([...blocks, newBlock]);
@@ -688,6 +838,68 @@ To fix this:
       }
     });
   };
+
+  const handleBlockPaste = (index: number, e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = e.clipboardData.getData("text/plain");
+    const paragraphs = text.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+    if (paragraphs.length === 0) return;
+    e.preventDefault();
+
+    const currentContent = blocks[index].text_content.trim();
+    const isEmpty = currentContent === "";
+    const before = blocks.slice(0, index);
+    const after = blocks.slice(index + 1);
+    const newNormalBlocks: ContentBlock[] = paragraphs.map((p, i) => ({
+      type: "normalText",
+      text_content: p,
+      block_order: index + (isEmpty ? 0 : 1) + i,
+    } as ContentBlock));
+
+    let newBlocks: ContentBlock[];
+    let focusIndex: number;
+    if (isEmpty) {
+      newBlocks = [...before, ...newNormalBlocks, ...after];
+      focusIndex = index;
+    } else {
+      newBlocks = [...before, blocks[index] as ContentBlock, ...newNormalBlocks, ...after];
+      focusIndex = index + 1;
+    }
+    newBlocks = newBlocks.map((b, i) => ({ ...b, block_order: i }));
+    setBlocks(newBlocks);
+    nextFocusBlockIndex.current = focusIndex;
+  };
+
+  const applyInlineFormatting = (startTag: string, endTag: string) => {
+    const idx = activeBlockIndex ?? lastFocusedBlockIndex.current;
+    if (idx == null || idx < 0 || idx >= blocks.length) return;
+    const textarea = blockRefs.current[idx];
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (start === end) return;
+
+    const text = blocks[idx].text_content;
+    const newText =
+      text.slice(0, start) +
+      startTag +
+      text.slice(start, end) +
+      endTag +
+      text.slice(end);
+
+    const updated = [...blocks];
+    updated[idx] = { ...updated[idx], text_content: newText };
+    setBlocks(updated);
+
+    const newCursorEnd = start + startTag.length + (end - start) + endTag.length;
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newCursorEnd, newCursorEnd);
+      textarea.style.height = "auto";
+      textarea.style.height = textarea.scrollHeight + "px";
+    }, 0);
+  };
+
   const updateBlock = (index: number, text: string) => {
     const updated = [...blocks];
     updated[index].text_content = text;
@@ -714,6 +926,21 @@ To fix this:
   // --- Sync Effects ---
   useEffect(() => { if (initialTags) setSelectedTags(initialTags); }, [initialTags]);
   useEffect(() => { if (initialTopics) setSelectedTopics(initialTopics); if (initialTopicRelevancyScores) setTopicRelevancyScores(initialTopicRelevancyScores); }, [initialTopics]);
+
+  // Focus block after smart paste
+  useEffect(() => {
+    const idx = nextFocusBlockIndex.current;
+    if (idx !== null && blockRefs.current[idx]) {
+      const el = blockRefs.current[idx];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
+      }
+      nextFocusBlockIndex.current = null;
+    }
+  }, [blocks]);
 
   return (
     <div className="flex min-h-screen w-full bg-white overflow-hidden font-sans text-slate-900">
@@ -769,6 +996,7 @@ To fix this:
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
+                onFocus={() => { lastFocusedBlockIndex.current = null; }}
                 placeholder="Untitled Article"
                 className="w-full text-4xl font-extrabold tracking-tight text-slate-900 placeholder:text-slate-300 border-none outline-none bg-transparent p-0"
               />
@@ -781,6 +1009,7 @@ To fix this:
                 <textarea
                   value={excerpt}
                   onChange={e => setExcerpt(e.target.value)}
+                  onFocus={() => { lastFocusedBlockIndex.current = null; }}
                   placeholder={isIntroduction ? "Add a short excerpt (Optional for Introductions)" : "Add a short excerpt or summary..."}
                   className="w-full text-xl text-slate-500 placeholder:text-slate-300 border-none outline-none bg-transparent p-0 pl-4 resize-none font-serif"
                   rows={2}
@@ -845,6 +1074,8 @@ To fix this:
                       <textarea
                         value={block.text_content}
                         onChange={e => updateBlock(index, e.target.value)}
+                        onPaste={(e) => handleBlockPaste(index, e)}
+                        onFocus={() => { setActiveBlockIndex(index); lastFocusedBlockIndex.current = index; }}
                         placeholder={`Type ${config.label.toLowerCase()}...`}
                         className={`w-full bg-transparent border-none outline-none resize-none p-2 ${config.textStyle}`}
                         rows={block.type === 'normalText' ? undefined : 2}
@@ -878,6 +1109,18 @@ To fix this:
         {/* Bottom Floating Bar for Add Block (always in viewport) */}
         <div className="fixed bottom-6 left-0 right-4 xl:right-[22rem] flex justify-center z-30 pointer-events-none px-4">
           <div className="bg-white/90 backdrop-blur-md border border-slate-200 shadow-xl rounded-full px-2 py-2 flex items-center gap-1 pointer-events-auto transform transition-transform hover:scale-105">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => applyInlineFormatting("<i>", "</i>")}
+              className="flex flex-col items-center justify-center w-12 h-12 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors gap-1 group relative"
+              title="Italic"
+            >
+              <Italic size={18} />
+              <span className="text-[9px] font-medium opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-slate-800 text-white px-2 rounded whitespace-nowrap transition-all delay-75">
+                Italic
+              </span>
+            </button>
             {Object.entries(blockConfig).map(([key, conf]) => (
               <button
                 key={key}
@@ -1058,19 +1301,100 @@ To fix this:
 
               <section className="space-y-3 pt-4 border-t border-slate-100">
                 <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                  <Settings size={12} /> Group ID {isIntroduction ? <span className="text-xs text-slate-400 font-normal normal-case">(Optional)</span> : <span className="text-red-500 text-xs normal-case font-normal">*</span>}
+                  <Settings size={12} /> Group IDs {isIntroduction ? <span className="text-xs text-slate-400 font-normal normal-case">(Optional)</span> : <span className="text-red-500 text-xs normal-case font-normal">*</span>}
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  required={!isIntroduction}
-                  value={selectedGroupId || ''}
-                  onChange={e => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
-                  placeholder={isIntroduction ? "Group ID (optional)" : "Group ID (required)"}
-                  className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none ${errors.groupId ? 'border-red-300' : 'border-slate-200'
-                    }`}
-                />
-                {errors.groupId && <p className="text-xs text-red-500 mt-1">{errors.groupId}</p>}
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs text-slate-500 mb-1 block">
+                      Primary Group (numeric ID, used if no refs resolve)
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      required={!isIntroduction}
+                      value={selectedGroupId || ''}
+                      onChange={e => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
+                      placeholder={isIntroduction ? "Primary group ID (optional)" : "Primary group ID (required if no refs)"}
+                      className={`w-full px-3 py-2 bg-slate-50 border rounded text-sm focus:border-slate-400 outline-none ${errors.groupId ? 'border-red-300' : 'border-slate-200'
+                        }`}
+                    />
+                    {errors.groupId && <p className="text-xs text-red-500 mt-1">{errors.groupId}</p>}
+                  </div>
+
+                  {groupResolutionMessage && !errors.groupId && (
+                    <p className="text-xs text-slate-500 mt-1">{groupResolutionMessage}</p>
+                  )}
+
+                  {normalizedGroupIds.length > 0 && (
+                    <div className="text-xs text-slate-600 mt-1 space-y-1">
+                      <p className="font-medium">Linked Groups from refs:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {normalizedGroupIds.map(id => (
+                          <span
+                            key={id}
+                            className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200"
+                          >
+                            #{id}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="space-y-3 pt-4 border-t border-slate-100">
+                <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                  <Globe size={12} /> References
+                </label>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-xs text-slate-500 mb-1 block">
+                      Primary Quran Ref <span className="text-slate-400">(chapter:ayah, e.g. 2:255)</span>
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2:255"
+                      value={primaryReference}
+                      onChange={e => handlePrimaryReferenceChange(e.target.value)}
+                      onBlur={() => { void resolveGroupsFromRefs(); }}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-500">Secondary Refs (chapter:ayah)</span>
+                      <button
+                        type="button"
+                        onClick={addSecondaryReference}
+                        className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                    {secondaryReferences.map((ref, i) => (
+                      <div key={i} className="flex gap-1">
+                        <input
+                          value={ref}
+                          onChange={e => updateSecondaryReference(i, e.target.value)}
+                          onBlur={() => { void resolveGroupsFromRefs(); }}
+                          placeholder="e.g. 36:12"
+                          className="flex-1 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:border-slate-400 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSecondaryReference(i)}
+                          className="px-2 text-slate-400 hover:text-red-500"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {secondaryReferences.length === 0 && (
+                      <p className="text-xs text-slate-400 italic">No secondary references</p>
+                    )}
+                  </div>
+                </div>
               </section>
             </div>
           )}
@@ -1335,38 +1659,6 @@ To fix this:
                       }`}
                   />
                   {errors.source && <p className="text-xs text-red-500 mt-1">{errors.source}</p>}
-                  <input
-                    type="text" placeholder="Primary Reference"
-                    value={primaryReference} onChange={e => handlePrimaryReferenceChange(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-slate-400 outline-none"
-                  />
-                </div>
-              </section>
-
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
-                    <LinkIcon size={12} /> Secondary Refs
-                  </label>
-                  <button onClick={addSecondaryReference} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors">
-                    + Add
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {secondaryReferences.map((ref, i) => (
-                    <div key={i} className="flex gap-1">
-                      <input
-                        value={ref}
-                        onChange={e => updateSecondaryReference(i, e.target.value)}
-                        placeholder="Ref..."
-                        className="flex-1 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:border-slate-400 outline-none"
-                      />
-                      <button onClick={() => removeSecondaryReference(i)} className="px-2 text-slate-400 hover:text-red-500">
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                  {secondaryReferences.length === 0 && <p className="text-xs text-slate-400 italic">No secondary references</p>}
                 </div>
               </section>
 

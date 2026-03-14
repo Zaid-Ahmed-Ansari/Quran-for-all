@@ -6,6 +6,7 @@ import {
   ImageIcon, Download, Bookmark, Send, ExternalLink, ChevronDown 
 } from "lucide-react";
 import BlockRenderer from "./BlockRenderer";
+import { renderFormattedText } from "../lib/renderFormattedText";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 // --- Configuration ---
@@ -161,29 +162,30 @@ export default function ArticlePreview({
                 ) : null}
                 {/* Specific Rendering for Short Mode */}
                 {blocks.map((block, i) => {
+                  const formatted = renderFormattedText(block.text_content, `short-${i}`);
                   if (block.type === 'verse') {
                     return (
                       <p key={i} className="font-serif italic text-slate-700 text-[17px] leading-relaxed text-center mb-4">
-                        {block.text_content}
+                        {formatted}
                       </p>
                     );
                   }
                   if (block.type === 'quote') {
                     return (
                       <p key={i} className="font-serif italic text-slate-700 text-[17px] leading-relaxed mb-4">
-                        “{block.text_content}”
+                        “{formatted}”
                       </p>
                     );
                   }
                   if (block.type === 'subheading') {
-                     return <h3 key={i} className="font-bold text-slate-900 mt-4 mb-2">{block.text_content}</h3>;
+                     return <h3 key={i} className="font-bold text-slate-900 mt-4 mb-2">{formatted}</h3>;
                   }
                   if (block.type === 'boldText') {
-                    return <h3 key={i} className="font-bold text-center text-slate-900 mt-4 mb-2">{block.text_content}</h3>;
+                    return <h3 key={i} className="font-bold text-center text-slate-900 mt-4 mb-2">{formatted}</h3>;
                  }
                   return (
                     <p key={i} className="font-serif text-slate-800 text-[17px] leading-[1.6]">
-                      {block.text_content}
+                      {formatted}
                     </p>
                   );
                 })}
@@ -297,7 +299,7 @@ export default function ArticlePreview({
               ) : (
                 blocks.map((block, index) => (
                   <div key={index}>
-                    <BlockRenderer block={block} />
+                    <BlockRenderer block={block} blockIndex={index} />
                   </div>
                 ))
               )}
